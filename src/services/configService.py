@@ -8,7 +8,8 @@ config = configparser.ConfigParser()
 
 if not configPath.exists():
     config["setting"] = {
-        "api_only": False
+        "api_only": False,
+        "service_name": "Azura Ticket"
     }
 
     with configPath.open("w", encoding="utf-8") as f:
@@ -19,3 +20,4 @@ if not configPath.exists():
 config.read(configPath, encoding="utf-8")
 
 api_only = config["setting"].getboolean("api_only", False)
+serviceName = config["setting"].get("service_name", "Azura Ticket")

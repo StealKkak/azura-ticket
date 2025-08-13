@@ -11,25 +11,28 @@ from routes.index import router
 
 import services.configService as settings
 
+from utils.randomUtil import *
+
 load_dotenv(override=True)
 
 TOKEN = os.getenv("TOKEN")
 PREFIX = os.getenv("PREFIX")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 
-app = Quart(__name__, template_folder="../views")
+app = Quart(__name__, template_folder="../views", static_folder="../static")
+app.secret_key = os.getenv("SESSION_SECRETS", randomString(20))
 
 @app.errorhandler(404)
 async def notFound(e):
     if request.path.startswith("/api"):
-        return jsonify({"error": "Service not found"})
-    return render_template("error/404.html")
+        return jsonify({"error": "Service not found"}), 404
+    return await render_template("error/404.html"), 404
 
 @app.errorhandler(500)
 async def serverError(e):
     if request.path.startswith("/api"):
-        return jsonify({"error": "Internal server error"})
-    return render_template("error/500.html")
+        return jsonify({"error": "Internal server error"}), 500
+    return render_template("error/500.html"), 500
 
 app.register_blueprint(router)
 
