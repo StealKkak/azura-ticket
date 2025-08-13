@@ -5,3 +5,5 @@ db/*
 transcriptions/*
 !transcriptions/.gitkeep
 .DS_Store
+images/*
+!images/.gitkeep

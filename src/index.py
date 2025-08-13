@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 from quart import Quart, request, render_template
 
+import services.configService as settings
+
 load_dotenv(override=True)
 
 TOKEN = os.getenv("TOKEN")
