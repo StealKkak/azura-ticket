@@ -1,8 +1,13 @@
+import asyncio
+import logging
+
 import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
-from quart import Quart, request, render_template
+from quart import Quart, request, render_template, jsonify
+
+from routes.index import router
 
 import services.configService as settings
 
@@ -11,6 +16,22 @@ load_dotenv(override=True)
 TOKEN = os.getenv("TOKEN")
 PREFIX = os.getenv("PREFIX")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+
+app = Quart(__name__, template_folder="../views")
+
+@app.errorhandler(404)
+async def notFound(e):
+    if request.path.startswith("/api"):
+        return jsonify({"error": "Service not found"})
+    return render_template("error/404.html")
+
+@app.errorhandler(500)
+async def serverError(e):
+    if request.path.startswith("/api"):
+        return jsonify({"error": "Internal server error"})
+    return render_template("error/500.html")
+
+app.register_blueprint(router)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -29,5 +50,8 @@ async def on_ready():
     await bot.tree.sync()
     print(f"Logged in as {bot.user.name}")
 
-if __name__ == "__main__":
-    bot.run(TOKEN)
+@app.before_serving
+async def startUp():
+    asyncio.create_task(bot.start(TOKEN))
+
+app.run("0.0.0.0", os.getenv("PORT"), True)
