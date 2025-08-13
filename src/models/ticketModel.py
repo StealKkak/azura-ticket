@@ -26,11 +26,11 @@ class Ticket():
         return self.__channel
     
     @property
-    def ticket_status(self):
+    def status(self):
         return self.__ticket_status
     
-    @ticket_status.setter
-    def ticket_status(self, value):
+    @status.setter
+    def status(self, value):
         if value not in ["open", "closed", "deleted"]:
             raise ValueError("Invalid ticket status")
         
@@ -69,7 +69,7 @@ class Ticket():
     async def save(self):
         con, cur = await loadDB()
         try:
-            await cur.execute("UPDATE tickets SET guild = ?, user = ?, channel = ?, ticket_status = ?, open_time = ?, close_time = ?", (self.__guild, self.__user, self.__channel, self.__ticket_status, self.__open_time, self.__close_time))
+            await cur.execute("UPDATE tickets SET guild = ?, user = ?, channel = ?, ticket_status = ?, open_time = ?, close_time = ? WHERE channel = ?", (self.__guild, self.__user, self.__channel, self.__ticket_status, self.__open_time, self.__close_time, self.__channel))
             await con.commit()
         finally:
             await closeDB(con, cur)

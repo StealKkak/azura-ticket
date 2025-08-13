@@ -9,6 +9,8 @@ from discord.ext import commands
 
 from services.dbService import *
 
+from models.ticketModel import Ticket
+
 from utils.embedUtil import makeEmbed
 
 
@@ -121,6 +123,23 @@ class ticketExtension(commands.Cog):
                             return await interaction.followup.send(embed=makeEmbed("error", "오류", "티켓 생성 실패"))
 
                     return await interaction.followup.send(embed=makeEmbed("info", "성공", f"티켓 생성을 성공하였습니다!\n{channel.jump_url}"), ephemeral=True)
+                
+                elif parts[1] == "CLOSE":
+                    try:
+                        ticket = await Ticket.findByChannelId(interaction.channel.id)
+                        if ticket.status == "closed":
+                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "이미 닫힌 티켓입니다!"), ephemeral=True)
+                        try:
+                            member = await interaction.guild.fetch_member(ticket.user)
+                            await interaction.channel.set_permissions(member, overwrite=discord.PermissionOverwrite(read_messages=False))
+                        except discord.NotFound:
+                            pass
+                        ticket.status = "closed"
+                        await ticket.save()
+                        return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓이 닫혔습니다!"), view=closedButton())
+                    except:
+                        print(traceback.print_exc())
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 닫을 수 없습니다!"), ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(ticketExtension(bot))
