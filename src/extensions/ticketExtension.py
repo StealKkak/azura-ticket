@@ -3,6 +3,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from services.dbService import *
+
+from utils.embedUtil import makeEmbed
+
 class CreateTicketButton(discord.ui.View):
     def __init__(self, buttonLabel, style):
         super.__init__()
@@ -22,6 +26,24 @@ class closedButton(discord.ui.View):
 class ticketExtension(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @app_commands.command(name="등록", description="이 서버를 등록합니다!")
+    @app_commands.guild_install()
+    @app_commands.guild_only()
+    @app_commands.default_permissions(administrator=True)
+    async def register(self, interaction: discord.Interaction):
+        con, cur = await loadDB()
+        await cur.execute("SELECT * FROM guilds WHERE id = ?", (interaction.guild.id,))
+        exists = await cur.fetchone()
+
+        if exists:
+            await closeDB(con, cur)
+            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "이미 등록된 서버입니다!"), ephemeral=True)
+        
+        await cur.execute("INSERT INTO guilds (id) VALUES (?)", (interaction.guild.id,))
+        await con.commit()
+        await closeDB(con, cur)
+        return await interaction.response.send_message(embed=makeEmbed("info", "등록 성공", "성공적으로 서버를 등록했습니다!"), ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(ticketExtension(bot))
