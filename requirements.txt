@@ -1,0 +1,5 @@
+discord.py==2.5.2
+dotenv==0.9.9
+aiosqlite==0.21.0
+chat-exporter==2.8.4
+quart==0.20.0
