@@ -1,3 +1,4 @@
+import io
 import traceback
 
 from datetime import *
@@ -6,6 +7,8 @@ import discord
 
 from discord import app_commands
 from discord.ext import commands
+
+import chat_exporter
 
 from services.dbService import *
 
@@ -141,7 +144,7 @@ class ticketExtension(commands.Cog):
                         print(traceback.print_exc())
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 닫을 수 없습니다!"), ephemeral=True)
                     
-                if parts[1] == "REOPEN":
+                elif parts[1] == "REOPEN":
                     try:
                         ticket = await Ticket.findByChannelId(interaction.channel.id)
                         if ticket.status != "closed":
@@ -150,6 +153,7 @@ class ticketExtension(commands.Cog):
                         overwrites = {}
                         member = await interaction.guild.fetch_member(ticket.user)
                         overwrites[member] = ticketOverwrite
+                        overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
                         await interaction.channel.edit(overwrites=overwrites)
 
                         ticket.status = "open"
@@ -161,6 +165,24 @@ class ticketExtension(commands.Cog):
                     except:
                         print(traceback.print_exc())
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 다시 열 수 없습니다!"), ephemeral=True)
+                    
+                elif parts[1] == "DELETE":
+                    try:
+                        ticket = await Ticket.findByChannelId(interaction.channel.id)
+                        if ticket.status != "closed":
+                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "닫힌 티켓이 아닙니다!"), ephemeral=True)
+                        
+                        transcription = await chat_exporter.export(interaction.channel)
+                        fileBuffer = io.BytesIO(transcription.encode("utf-8"))
+                        file = discord.File(fp=fileBuffer, filename="transcription.html")
+                        await interaction.user.send(file=file)
+
+                        await interaction.channel.delete()
+                        ticket.status = "deleted"
+                        await ticket.save()
+                    except:
+                        print(traceback.print_exc())
+                        await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 삭제할 수 없습니다!"), ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(ticketExtension(bot))
