@@ -140,6 +140,27 @@ class ticketExtension(commands.Cog):
                     except:
                         print(traceback.print_exc())
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 닫을 수 없습니다!"), ephemeral=True)
+                    
+                if parts[1] == "REOPEN":
+                    try:
+                        ticket = await Ticket.findByChannelId(interaction.channel.id)
+                        if ticket.status != "closed":
+                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "닫힌 티켓이 아닙니다!"), ephemeral=True)
+                        
+                        overwrites = {}
+                        member = await interaction.guild.fetch_member(ticket.user)
+                        overwrites[member] = ticketOverwrite
+                        await interaction.channel.edit(overwrites=overwrites)
+
+                        ticket.status = "open"
+                        await ticket.save()
+
+                        return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓을 다시 열었습니다!"), view=CloseTicketButton())
+                    except discord.NotFound:
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "유저가 서버를 나가서 티켓을 다시 열 수 없습니다!"), ephemeral=True)
+                    except:
+                        print(traceback.print_exc())
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 다시 열 수 없습니다!"), ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(ticketExtension(bot))
