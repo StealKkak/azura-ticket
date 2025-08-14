@@ -11,6 +11,8 @@ from routes.index import router
 
 import services.configService as settings
 
+from services.dbService import *
+
 from utils.randomUtil import *
 
 load_dotenv(override=True)
@@ -55,6 +57,7 @@ async def on_ready():
 
 @app.before_serving
 async def startUp():
+    await initDB()
     asyncio.create_task(bot.start(TOKEN))
 
 app.run("0.0.0.0", os.getenv("PORT"), True)
