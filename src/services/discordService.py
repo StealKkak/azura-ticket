@@ -259,3 +259,10 @@ async def refreshGuildList(userId: str):
     await closeDB(con, cur)
 
     return {"success": True, "data": new_guild_list["guilds"]}
+
+async def isGuildAdmin(guild_id, username):
+    guilds = await getUserGuilds(username)
+    if isinstance(guilds, list):
+        return False
+    
+    return any(guild["id"] == guild_id for guild in guilds["data"])

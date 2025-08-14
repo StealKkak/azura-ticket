@@ -3,13 +3,13 @@ from services.dbService import *
 from utils.arrayUtil import *
 
 class TicketType:
-    def __init__(self, guild, name: str, userClose: bool, maxTicket: int, role: list=None, survey1: str = None, survey2: str = None, survey3: str = None):
+    def __init__(self, guild, name: str, userClose: bool, maxTicket: int, role: list, survey1: str = None, survey2: str = None, survey3: str = None):
         self.__guild = guild
         self.__name = name
         self.__survey1 = survey1
         self.__survey2 = survey2
         self.__survey3 = survey3
-        self.__role = arrayToString(role) if role else None
+        self.__role = arrayToString(role)
         self.__userClose = 1 if userClose else 0
         self.__maxTicket = maxTicket
 
@@ -59,14 +59,10 @@ class TicketType:
 
     @property
     def role(self):
-        if self.__role is None:
-            return None
         return stringToArray(self.__role)
     
     @role.setter
     def role(self, value: list=None):
-        if value is None:
-            self.__role = None
         self.__role = arrayToString(value)
 
     @property
@@ -86,18 +82,46 @@ class TicketType:
             await closeDB(con, cur)
             raise ValueError("A record with the same guild and name already exists.")
         
-        await cur.execute("UPDATE ticket_settings SET name = ?, survay1 = ?, survay2 = ?, survay3 = ?, role = ?, user_close = ?, mat_ticket = ?", (self.__name, self.__survey1, self.__survey2, self.__survey3, self.__role, self.__userClose, self.__maxTicket))
+        await cur.execute("UPDATE ticket_settings SET name = ?, survey1 = ?, survey2 = ?, survey3 = ?, role = ?, user_close = ?, max_ticket = ?", (self.__name, self.__survey1, self.__survey2, self.__survey3, self.__role, self.__userClose, self.__maxTicket))
         await con.commit()
         await closeDB(con, cur)
 
     @staticmethod
-    async def findTicketTypeByGuildIdAndName(guildId, name):
+    async def createInstance(guild, name: str, userClose: bool, maxTicket: int, role: list, survey1: str = None, survey2: str = None, survey3: str = None):
+        con, cur = await loadDB()
+        await cur.execute("SELECT * FROM ticket_settings WHERE guild = ? AND name = ?", (guild, name))
+        exists = await cur.fetchone()
+        if exists:
+            await closeDB(con, cur)
+            raise ValueError("A record with the same guild and name already exists.")
+        
+        await cur.execute("INSERT INTO ticket_settings (guild, name, survey1, survey2, survey3, role, user_close, max_ticket) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (guild, name, survey1, survey2, survey3, arrayToString(role), 1 if userClose else None, maxTicket if maxTicket else 0))
+        await con.commit()
+        await closeDB(con, cur)
+        return TicketType(guild, name, userClose, maxTicket, role, survey1, survey2, survey3)
+
+    @staticmethod
+    async def findByGuildIdAndName(guildId, name) -> "TicketType":
         con, cur = await loadDB()
         await cur.execute("SELECT * FROM ticket_settings WHERE guild = ? AND name = ?", (guildId, name))
         row = await cur.fetchone()
-        await closeDB()
+        await closeDB(con, cur)
 
         if not row:
             return None
         
-        return TicketType(row["guild"], row["name"], bool(row["user_close"]), row["max_ticket"], stringToArray(row["role"]) if row["role"] else None, row["survay1"], row["survay2"], row["survay3"])
+        return TicketType(row["guild"], row["name"], bool(row["user_close"]), row["max_ticket"], stringToArray(row["role"]), row["survey1"], row["survey2"], row["survey3"])
+    
+    @staticmethod
+    async def findByGuildId(guildId)-> list["TicketType"]:
+        result = []
+
+        con, cur = await loadDB()
+        await cur.execute("SELECT * FROM ticket_settings WHERE guild = ?", (guildId,))
+        rows = await cur.fetchall()
+        await closeDB(con, cur)
+        
+        for row in rows:
+            result.append(TicketType(row["guild"], row["name"], bool(row["user_close"]), row["max_ticket"], stringToArray(row["role"]), row["survey1"], row["survey2"], row["survey3"]))
+        
+        return result

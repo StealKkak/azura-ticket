@@ -1,8 +1,6 @@
 import asyncio
 import logging
 
-import discord
-from discord.ext import commands
 import os
 from dotenv import load_dotenv
 from quart import Quart, request, render_template, jsonify
@@ -15,13 +13,15 @@ from services.dbService import *
 
 from utils.randomUtil import *
 
+from bot import bot
+
 load_dotenv(override=True)
 
 TOKEN = os.getenv("TOKEN")
-PREFIX = os.getenv("PREFIX")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 
 app = Quart(__name__, template_folder="../views", static_folder="../static")
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.secret_key = os.getenv("SESSION_SECRETS", randomString(20))
 
 @app.errorhandler(404)
@@ -36,13 +36,11 @@ async def serverError(e):
         return jsonify({"error": "Internal server error"}), 500
     return render_template("error/500.html"), 500
 
-app.register_blueprint(router)
+@app.errorhandler(405)
+async def methodNotAllowed(e):
+    return jsonify({"error": "Method Not Allowed"}), 405
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-intents.presences = True
-bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None)
+app.register_blueprint(router)
 
 @bot.event
 async def on_ready():

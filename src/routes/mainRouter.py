@@ -24,4 +24,4 @@ async def guildList():
 
 @router.route("/dashboard/<parameter>")
 async def dashboard(parameter):
-    return f"/dashboard/{parameter}"
+    return await render_template("setting.html", serviceName=settings.serviceName)

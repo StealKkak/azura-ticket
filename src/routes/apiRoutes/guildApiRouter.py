@@ -1,0 +1,116 @@
+import traceback
+
+import discord
+
+from quart import Blueprint, jsonify, session, request
+
+
+from models.ticketTypeModel import *
+
+import services.configService as settigns
+
+from services.discordService import *
+
+from bot import bot
+
+router = Blueprint("guildApiRouter", __name__, url_prefix="/")
+
+@router.route("/<guildId>/ticket-settings", methods=["GET", "PUT"])
+async def getTicketSettings(guildId):
+    if not settigns.api_only:
+        username = session.get("username")
+        if not username:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        if not await isGuildAdmin(guildId, username):
+            return jsonify({"error": "You don't have permission to perform this action"}), 403
+        
+    tickets = await TicketType.findByGuildId(guildId)
+
+    if request.method == "GET":
+        if not tickets:
+            ticket = await TicketType.createInstance(guildId, "기본 티켓", True, 1, None, None, None, None)
+
+            return jsonify({
+                "data": [
+                    {
+                        "name": "기본 티켓"
+                    }
+                ]
+            })
+        
+        return jsonify({"data": [
+            {
+                "name": ticket.name
+            } for ticket in tickets
+        ]})
+    
+    elif request.method == "PUT":
+        body = await request.get_json()
+        name = body.get("name")
+
+        if not name:
+            return jsonify({"error": "Missing required paramter: name"}), 400
+        
+        try:
+            ticket = await TicketType.createInstance(guildId, name, True, 0, [])
+            return jsonify({"message": "success"}), 201
+        except ValueError:
+            return jsonify({"error": "이미 존재하는 티켓 이름입니다!"}), 400
+        except:
+            traceback.print_exc()
+            return jsonify({"error": "알 수 없는 오류입니다!"}), 500
+
+@router.route("/<guildId>/ticket-settings/<index>", methods=["GET", "POST"])
+async def handelTicketSetting(guildId, index):
+    if not settigns.api_only:
+        username = session.get("username")
+        if not username:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        if not await isGuildAdmin(guildId, username):
+            return jsonify({"error": "You don't have permission to perform this action"}), 403
+        
+    try:
+        index = int(index)
+    except:
+        return jsonify({"error": "index must be integer!"}), 400
+    
+    tickets = await TicketType.findByGuildId(guildId)
+    if index > len(tickets) - 1:
+        return jsonify({"error": "index out of range!"}), 400
+    
+    ticket = tickets[index]
+    
+    if request.method == "GET":
+        return jsonify({"data": {
+            "name": ticket.name,
+            "survey1": ticket.survey1,
+            "survey2": ticket.survey2,
+            "survey3": ticket.survey3,
+            "role": ticket.role,
+            "max_ticket": ticket.maxTicket
+        }})
+    
+    if request.method == "POST":
+        body = await request.get_json()
+        return
+    
+@router.route("/<guildId>/roles", methods=["GET"])
+async def getGuildRoles(guildId):
+    if not settigns.api_only:
+        username = session.get("username")
+        if not username:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        if not await isGuildAdmin(guildId, username):
+            return jsonify({"error": "You don't have permission to perform this action"}), 403
+    
+    try:
+        roles = await bot.http.get_roles(guildId)
+    except discord.Forbidden:
+        return jsonify({"error": "봇이 권한이 없어 역할을 가져올 수 없습니다!"}), 500
+    except discord.NotFound:
+        return jsonify({"error": "봇이 해당 서버에 존재하지 않아 역할을 가져올 수 없습니다!"}), 404
+    
+    return jsonify({"message": "success", "data": roles})

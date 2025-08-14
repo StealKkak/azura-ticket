@@ -10,8 +10,8 @@ class Ticket():
         self.__user = user
         self.__channel = channel
         self.__ticket_status = ticket_status
-        self.__open_time = open_time.isoformat() if open_time else None
-        self.__close_time = close_time.isoformat() if close_time else None
+        self.__openTime = open_time.isoformat() if open_time else None
+        self.__closeTime = close_time.isoformat() if close_time else None
 
     @property
     def guild(self):
@@ -37,34 +37,34 @@ class Ticket():
         self.__ticket_status = value
     
     @property
-    def open_time(self):
-        if not self.__open_time:
+    def openTime(self):
+        if not self.__openTime:
             return None
         
-        return datetime.fromisoformat(self.__open_time)
+        return datetime.fromisoformat(self.__openTime)
     
-    @open_time.setter
-    def open_time(self, value: datetime):
+    @openTime.setter
+    def openTime(self, value: datetime):
         if value is None:
             self.__close_time = None
             return
         
-        self.__open_time = datetime.isoformat(value)
+        self.__openTime = datetime.isoformat(value)
 
     @property
-    def close_time(self):
-        if not self.__close_time:
+    def closeTime(self):
+        if not self.__closeTime:
             return None
         
-        return datetime.fromisoformat(self.__close_time)
+        return datetime.fromisoformat(self.__closeTime)
     
-    @close_time.setter
-    def close_time(self, value: datetime):
+    @closeTime.setter
+    def closeTime(self, value: datetime):
         if value is None:
-            self.__close_time = None
+            self.__closeTime = None
             return
         
-        self.__close_time = datetime.isoformat(value)
+        self.__closeTime = datetime.isoformat(value)
 
     async def save(self):
         con, cur = await loadDB()
@@ -92,3 +92,15 @@ class Ticket():
         await closeDB(con, cur)
 
         return Ticket(row["guild"], row["user"], row["channel"], row["ticket_status"], datetime.fromisoformat(row["open_time"]) if row["open_time"] else None, datetime.fromisoformat(row["close_time"]) if row["close_time"] else None)
+    
+    @staticmethod
+    async def findByGuildId(guildId) -> list["Ticket"]:
+        result = []
+
+        con, cur = await loadDB()
+        await cur.execute("SELECT * FROM tickets WHERE guild = ? ORDER BY id ASC", (guildId,))
+        rows = await cur.fetchall()
+        await closeDB(con, cur)
+
+        for row in rows:
+            result.append(Ticket(row["guild"], row["user"], row["channel"], row["ticket_status"], datetime.fromisoformat(row["open_time"]) if row["open_time"] else None, datetime.fromisoformat(row["close_time"]) if row["close_time"] else None))
