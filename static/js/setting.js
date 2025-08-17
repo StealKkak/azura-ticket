@@ -23,6 +23,7 @@ const ticketCategoryList = document.getElementById("ticketCategoryList");
 const closedTicketCategoryList = document.getElementById("closedTicketCategoryList");
 
 containerList = [actionContainer, ticketListContainer, ticketSelectContainer];
+let ticketTypeIndex;
 
 document.querySelectorAll(".previousButton").forEach(button => {
     button.addEventListener("click", () => {
@@ -73,6 +74,7 @@ async function fetchTicketTypeList() {
 
 function renderTicketTypeList(ticketTypeListArray) {
     const ticketTypeList = document.getElementById("ticketTypeList");
+    document.getElementById("default-ticket").selected = true;
     ticketTypeList.innerHTML = "";
     ticketTypeListArray.forEach((ticketType, index) => {
         const option = document.createElement("option");
@@ -202,7 +204,8 @@ addTicketTypeModal.addEventListener("submit", async (e) => {
         list = await fetchTicketTypeList();
         renderTicketTypeList(list);
         Swal.fire({
-            "title": "티켓 종류 추가가 완료되었습니다!",
+            "title": "성공",
+            "text": "티켓 종류 추가가 완료되었습니다!",
             "icon": "success",
             "confirmButtonText": "닫기"
         });
@@ -275,7 +278,8 @@ document.getElementById("ticketTypeSelect").addEventListener("change", async (e)
     }
 
     try {
-        const res = await fetch(`/api/guilds/${guildId}/ticket-settings/${e.target.value}`);
+        ticketTypeIndex = e.target.value;
+        const res = await fetch(`/api/guilds/${guildId}/ticket-settings/${ticketTypeIndex}`);
         const data = await res.json();
 
         if (!res.ok) {
@@ -326,4 +330,48 @@ document.getElementById("globalPreviousButton").addEventListener("click", async 
     list = await fetchTicketTypeList();
     renderTicketTypeList(list);
     ticketSelectContainer.classList.remove("d-none");
-})
+});
+
+document.getElementById("globalDeleteButton").addEventListener("click", async (e) => {
+    const confirm = await Swal.fire({
+        title: "티켓을 삭제하시겠습니까?",
+        text: "이 티켓은 영원히 삭제됩니다!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "삭제",
+        cancelButtonText: "취소"
+    });
+    if (!confirm.isConfirmed) {
+        return;
+    }
+
+    const res = await fetch(`/api/guilds/${guildId}/ticket-settings/${ticketTypeIndex}`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+        Swal.fire({
+            "title": "오류",
+            "icon": "error",
+            "text": data.error || "알 수 없는 오류입니다!",
+            "confirmButtonText": "닫기"
+        });
+    } else {
+        Swal.fire({
+            "title": "성공",
+            "text": "티켓 종류 삭제가 완료되었습니다!",
+            "icon": "success",
+            "confirmButtonText": "닫기"
+        });
+        dashboardContainer.classList.add("d-none");
+        list = await fetchTicketTypeList();
+        renderTicketTypeList(list);
+        ticketSelectContainer.classList.remove("d-none");
+    }
+});

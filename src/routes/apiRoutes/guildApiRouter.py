@@ -61,7 +61,7 @@ async def getTicketSettings(guildId):
             traceback.print_exc()
             return jsonify({"error": "알 수 없는 오류입니다!"}), 500
 
-@router.route("/<guildId>/ticket-settings/<index>", methods=["GET", "POST"])
+@router.route("/<guildId>/ticket-settings/<index>", methods=["GET", "POST", "DELETE"])
 async def handelTicketSetting(guildId, index):
     if not settigns.api_only:
         username = session.get("username")
@@ -95,6 +95,10 @@ async def handelTicketSetting(guildId, index):
     if request.method == "POST":
         body = await request.get_json()
         return
+    
+    if request.method == "DELETE":
+        await ticket.delete()
+        return jsonify({"message": "success"}), 201
     
 @router.route("/<guildId>/roles", methods=["GET"])
 async def getGuildRoles(guildId):

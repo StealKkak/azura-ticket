@@ -86,6 +86,12 @@ class TicketType:
         await con.commit()
         await closeDB(con, cur)
 
+    async def delete(self):
+        con, cur = await loadDB()
+        await cur.execute("DELETE FROM ticket_settings WHERE guild = ? AND name = ?", (self.__guild, self.__name))
+        await con.commit()
+        await closeDB(con, cur)
+
     @staticmethod
     async def createInstance(guild, name: str, userClose: bool, maxTicket: int, role: list, survey1: str = None, survey2: str = None, survey3: str = None):
         con, cur = await loadDB()
