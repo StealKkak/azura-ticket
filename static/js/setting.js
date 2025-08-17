@@ -19,6 +19,8 @@ const surveyCheck3 = document.getElementById("surveyCheck3");
 const survey1Input = document.getElementById("survey1Input");
 const survey2Input = document.getElementById("survey2Input");
 const survey3Input = document.getElementById("survey3Input");
+const ticketCategoryList = document.getElementById("ticketCategoryList");
+const closedTicketCategoryList = document.getElementById("closedTicketCategoryList");
 
 containerList = [actionContainer, ticketListContainer, ticketSelectContainer];
 
@@ -242,6 +244,37 @@ document.getElementById("ticketTypeSelect").addEventListener("change", async (e)
     }
 
     try {
+        const res = await fetch(`/api/guilds/${guildId}/channels`);
+        const data = await res.json();
+        
+        ticketCategoryList.innerHTML = "";
+        closedTicketCategoryList.innerHTML = ""
+
+        if (res.ok) {
+            data.data.forEach(channel => {
+                if (channel.type == 4) {
+                    const option = document.createElement("option");
+                    option.value = channel.id;
+                    option.textContent = channel.name;
+                    ticketCategoryList.appendChild(option);
+                    closedTicketCategoryList.appendChild(option.cloneNode(true));
+                }
+            });
+        } else {
+            ticketCategoryList.innerHTML = `<option value='' selected disabled>${data.error}</option>`;
+            closedTicketCategoryList.innerHTML = `<option value='' selected disabled>${data.error}</option>`;
+        }
+    } catch (error) {
+        Swal.fire({
+            "title": "오류",
+            "icon": "error",
+            "text": error || "알 수 없는 오류입니다!",
+            "confirmButtonText": "닫기"
+        });
+        return;
+    }
+
+    try {
         const res = await fetch(`/api/guilds/${guildId}/ticket-settings/${e.target.value}`);
         const data = await res.json();
 
@@ -286,4 +319,11 @@ document.getElementById("ticketTypeSelect").addEventListener("change", async (e)
     hideSpinner();
     ticketSelectContainer.classList.add("d-none");
     dashboardContainer.classList.remove("d-none");
+});
+
+document.getElementById("globalPreviousButton").addEventListener("click", async (e) => {
+    dashboardContainer.classList.add("d-none");
+    list = await fetchTicketTypeList();
+    renderTicketTypeList(list);
+    ticketSelectContainer.classList.remove("d-none");
 })

@@ -114,3 +114,22 @@ async def getGuildRoles(guildId):
         return jsonify({"error": "봇이 해당 서버에 존재하지 않아 역할을 가져올 수 없습니다!"}), 404
     
     return jsonify({"message": "success", "data": roles})
+
+@router.route("/<guildId>/channels", methods=["GET"])
+async def getGuildChannels(guildId):
+    if not settigns.api_only:
+        username = session.get("username")
+        if not username:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        if not await isGuildAdmin(guildId, username):
+            return jsonify({"error": "You don't have permission to perform this action"}), 403
+    
+    try:
+        channels = await bot.http.get_all_guild_channels(guildId)
+    except discord.Forbidden:
+        return jsonify({"error": "봇이 권한이 없어 채널을 가져올 수 없습니다!"}), 500
+    except discord.NotFound:
+        return jsonify({"error": "봇이 해당 서버에 존재하지 않아 채널을 가져올 수 없습니다!"}), 404
+    
+    return jsonify({"message": "success", "data": channels})

@@ -131,7 +131,7 @@
 
                     <div class="col-md-6">
                         <div class="card p-3 shadow-sm h-100">
-                            <h5 class="card-title mb-3 text-center">역할 설정</h5>
+                            <h5 class="card-title mb-3 text-center">역할, 채널 설정</h5>
                             <div class="dropdown">
                                 <button class="btn btn-secondary w-100 dropdown-toggle" type="button" id="roleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     역할 선택
@@ -140,6 +140,18 @@
                                     <option value="" selected disabled>역할을 불러오는 중...</option>
                                 </ul>
                             </div>
+                            <select class="form-select mt-3" id="ticketCategorySelect">
+                                <option value="" selected disabled>티켓 카테고리</option>
+                                <div id="ticketCategoryList">
+                                    <option value="" disabled>채널을 불러오는 중...</option>
+                                </div>
+                            </select>
+                            <select class="form-select mt-3" id="closedTicketCategorySelect">
+                                <option value="" selected disabled>닫힌 티켓 카테고리</option>
+                                <div id="closedTicketCategoryList">
+                                    <option value="" disabled>채널을 불러오는 중...</option>
+                                </div>
+                            </select>
                         </div>
                     </div>
 
@@ -170,6 +182,9 @@
                 </button>
                 <button class="btn btn-danger btn-md" id="globalDeleteButton">
                     <i class="bi bi-trash me-2"></i>삭제
+                </button>
+                <button class="btn btn-outline-secondary btn-md" id="globalPreviousButton">
+                    <i class="bi bi-arrow-90deg-left me-2"></i>뒤로 가기
                 </button>
             </div>
 
