@@ -53,7 +53,7 @@ async def getTicketSettings(guildId):
             return jsonify({"error": "Missing required paramter: name"}), 400
         
         try:
-            ticket = await TicketType.createInstance(guildId, name, True, 0, [])
+            await TicketType.createInstance(guildId, name, True, 0, [])
             return jsonify({"message": "success"}), 201
         except ValueError:
             return jsonify({"error": "이미 존재하는 티켓 이름입니다!"}), 400
@@ -89,12 +89,41 @@ async def handelTicketSetting(guildId, index):
             "survey2": ticket.survey2,
             "survey3": ticket.survey3,
             "role": ticket.role,
-            "max_ticket": ticket.maxTicket
+            "max_ticket": ticket.maxTicket,
+            "ticket_category": str(ticket.ticketCategory),
+            "closed_ticket_category": str(ticket.closedTicketCategory),
+            "user_close": bool(ticket.userClose)
         }})
     
     if request.method == "POST":
         body = await request.get_json()
-        return
+
+        roles = body.get("roles")
+        if roles and len(roles) > 0:
+            for role in roles:
+                try:
+                    int(role)
+                except:
+                    return jsonify({"역할 값은 양수여야 합니다!"}), 400
+
+        try:
+            ticket.name = body.get("name")
+            ticket.survey1 = body.get("survey1")
+            ticket.survey2 = body.get("survey2")
+            ticket.survey3 = body.get("survey3")
+            ticket.role = body.get("role")
+            ticket.maxTicket = body.get("max_ticket")
+            ticket.ticketCategory = body.get("ticket_category")
+            ticket.closedTicketCategory = body.get("closed_ticket_category")
+            ticket.userClose = bool(body.get("user_close"))
+            await ticket.save()
+        except ValueError:
+            return jsonify({"error": "티켓 이름은 중복될 수 없습니다!"}), 400
+        except:
+            traceback.print_exc()
+            return jsonify({"error": "알 수 없는 서버 오류입니다!"}), 500
+        
+        return jsonify({"message": "success"}), 201
     
     if request.method == "DELETE":
         await ticket.delete()

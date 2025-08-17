@@ -10,17 +10,20 @@ const loadingSpinner = document.getElementById("loadingSpinner");
 const pathParts = window.location.pathname.split('/').filter(Boolean);
 const guildId = pathParts[pathParts.length - 1];
 
-const maxTickets = document.getElementById("maxTickets");
-const ticketName = document.getElementById("ticketName");
+const maxTicketsInput = document.getElementById("maxTickets");
+const ticketNameInput = document.getElementById("ticketName");
 const roleListDropdown = document.getElementById("roleListDropdown");
-const surveyCheck1 = document.getElementById("surveyCheck1");
-const surveyCheck2 = document.getElementById("surveyCheck2");
-const surveyCheck3 = document.getElementById("surveyCheck3");
+const survey1Checkbox = document.getElementById("surveyCheck1");
+const survey2Checkbox = document.getElementById("surveyCheck2");
+const survey3Checkbox = document.getElementById("surveyCheck3");
 const survey1Input = document.getElementById("survey1Input");
 const survey2Input = document.getElementById("survey2Input");
 const survey3Input = document.getElementById("survey3Input");
 const ticketCategoryList = document.getElementById("ticketCategoryList");
 const closedTicketCategoryList = document.getElementById("closedTicketCategoryList");
+const ticketCategorySelect = document.getElementById("ticketCategorySelect");
+const closedTicketCategorySelect = document.getElementById("closedTicketCategorySelect");
+const userCloseCheckbox = document.getElementById("userCloseCheckbox")
 
 containerList = [actionContainer, ticketListContainer, ticketSelectContainer];
 let ticketTypeIndex;
@@ -292,16 +295,26 @@ document.getElementById("ticketTypeSelect").addEventListener("change", async (e)
             return;
         }
 
-        ticketName.value = data.data.name;
-        maxTickets.value = data.data.max_ticket;
+        ticketNameInput.value = data.data.name;
+        maxTicketsInput.value = data.data.max_ticket;
 
-        surveyCheck1.checked = Boolean(data.data.survey1);
-        surveyCheck2.checked = Boolean(data.data.survey2);
-        surveyCheck3.checked = Boolean(data.data.survey3);
+        survey1Checkbox.checked = Boolean(data.data.survey1);
+        survey2Checkbox.checked = Boolean(data.data.survey2);
+        survey3Checkbox.checked = Boolean(data.data.survey3);
 
         survey1Input.value = data.data.survey1;
         survey2Input.value = data.data.survey2;
         survey3Input.value = data.data.survey3;
+
+        userCloseCheckbox.checked = data.data.user_close
+
+        if (Array.from(ticketCategorySelect.options).some(opt => opt.value == data.data.ticket_category)) {
+            ticketCategorySelect.value = data.data.ticket_category;
+        }
+
+        if (Array.from(closedTicketCategorySelect.options).some(opt => opt.value == data.data.closed_ticket_category)) {
+            closedTicketCategorySelect.value = data.data.closed_ticket_category;
+        }
 
         for (let role of data.data.role) {
             const checkbox = document.getElementById(`role-${role}`);
@@ -374,4 +387,61 @@ document.getElementById("globalDeleteButton").addEventListener("click", async (e
         renderTicketTypeList(list);
         ticketSelectContainer.classList.remove("d-none");
     }
+});
+
+document.getElementById("globalSaveButton").addEventListener("click", async (e) => {
+    const maxTickets = maxTicketsInput.value;
+    const ticketName = ticketNameInput;
+
+    const survey1 = survey1Input.value;
+    const survey2 = survey2Input.value;
+    const survey3 = survey3Input.value;
+
+    const survey1Checked = survey1Checkbox.checked;
+    const survey2Checked = survey2Checkbox.checked;
+    const survey3Checked = survey3Checkbox.checked;
+
+    const ticketCategory = document.getElementById("ticketCategorySelect").value;
+    const closedTicketCategory = document.getElementById("closedTicketCategorySelect").value;
+
+    const checked = roleListDropdown.querySelectorAll(".form-check-input:checked");
+    const roles = Array.from(checked).map(cb => cb.value);
+
+    const userClose = userCloseCheckbox.checked;
+
+    const res = await fetch(`/api/guilds/${guildId}/ticket-settings/${ticketTypeIndex}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        }, 
+        body: JSON.stringify({
+            name: ticketName,
+            max_ticket: maxTickets,
+            survey1: survey1Checked ? survey1 : null,
+            survey2: survey2Checked ? survey2 : null,
+            survey3: survey3Checked ? survey3 : null,
+            ticket_category: ticketCategory,
+            closed_ticket_category: closedTicketCategory,
+            role: roles,
+            user_close: userClose
+        })
+    });
+    data = await res.json();
+
+    if (!res.ok) {
+        Swal.fire({
+            "title": "오류",
+            "icon": "error",
+            "text": data.error || "알 수 없는 오류입니다!",
+            "confirmButtonText": "닫기"
+        });
+        return;
+    }
+
+    Swal.fire({
+        "title": "성공",
+        "text": "저장이 완료되었습니다!",
+        "icon": "success",
+        "confirmButtonText": "닫기"
+    });
 });
