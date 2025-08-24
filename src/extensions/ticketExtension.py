@@ -151,7 +151,7 @@ async def sendUnregisterdGuildError(interaction):
 
 class ticketExtension(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: commands.Bot = bot
         self.cleanUpTask = bot.loop.create_task(cleanUpLoop())
 
     def cog_unload(self):
@@ -280,6 +280,14 @@ class ticketExtension(commands.Cog):
                 elif parts[1] == "CLOSE":
                     try:
                         ticket = await Ticket.findByChannelId(interaction.channel.id)
+                        ticketType = await TicketType.findById(ticket.ticketType)
+
+                        if not ticketType:
+                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "삭제된 티켓 종류이기 때문에 티켓을 닫을 수 없습니다!"), view=discord.ui.View(discord.ui.Button(label="티켓 삭제", style=discord.ButtonStyle.danger, custom_id="TICKET_DELETE_ERROR")), ephemeral=True)
+
+                        if not ticketType.userClose and not (interaction.user.guild_permissions.administrator or any(r.id in ticketType.role for r in interaction.user.roles)):
+                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "관리자만 티켓을 닫을 수 있습니다!"), ephemeral=True)
+
                         if ticket.status == "closed":
                             return await interaction.response.send_message(embed=makeEmbed("error", "오류", "이미 닫힌 티켓입니다!"), ephemeral=True)
                         try:
@@ -287,8 +295,15 @@ class ticketExtension(commands.Cog):
                             await interaction.channel.set_permissions(member, overwrite=discord.PermissionOverwrite(read_messages=False))
                         except discord.NotFound:
                             pass
+
+                        try:
+                            category = await interaction.guild.fetch_channel(ticketType.closedTicketCategory)
+                        except discord.NotFound:
+                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "닫은 티켓 카테고리 설정이 유효하지 않아 티켓을 닫을 수 없습니다!"), view=discord.ui.View(discord.ui.Button(label="티켓 삭제", style=discord.ButtonStyle.danger, custom_id="TICKET_DELETE_ERROR")), ephemeral=True)
+
                         ticket.status = "closed"
                         await ticket.save()
+                        await interaction.channel.edit(category=category)
                         return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓이 닫혔습니다!"), view=closedButton())
                     except:
                         print(traceback.print_exc())
