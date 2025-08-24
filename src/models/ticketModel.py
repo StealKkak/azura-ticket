@@ -69,7 +69,7 @@ class Ticket():
     async def save(self):
         con, cur = await loadDB()
         try:
-            await cur.execute("UPDATE tickets SET guild = ?, user = ?, channel = ?, ticket_status = ?, open_time = ?, close_time = ? WHERE channel = ?", (self.__guild, self.__user, self.__channel, self.__ticket_status, self.__open_time, self.__close_time, self.__channel))
+            await cur.execute("UPDATE tickets SET guild = ?, user = ?, channel = ?, ticket_status = ?, open_time = ?, close_time = ? WHERE channel = ?", (self.__guild, self.__user, self.__channel, self.__ticket_status, self.__openTime, self.__closeTime, self.__channel))
             await con.commit()
         finally:
             await closeDB(con, cur)
@@ -104,3 +104,19 @@ class Ticket():
 
         for row in rows:
             result.append(Ticket(row["guild"], row["user"], row["channel"], row["ticket_status"], datetime.fromisoformat(row["open_time"]) if row["open_time"] else None, datetime.fromisoformat(row["close_time"]) if row["close_time"] else None))
+
+        return result
+
+    @staticmethod
+    async def findOpenTicketByUserIDAndGuildId(guildId, userId) -> list["Ticket"]:
+        result = []
+
+        con, cur = await loadDB()
+        await cur.execute("SELECT * FROM tickets WHERE guild = ? AND user = ? AND ticket_status = ?", (guildId, userId, "open"))
+        rows = await cur.fetchall()
+        await closeDB(con, cur)
+
+        for row in rows:
+            result.append(Ticket(row["guild"], row["user"], row["channel"], row["ticket_status"], datetime.fromisoformat(row["open_time"]) if row["open_time"] else None, datetime.fromisoformat(row["close_time"]) if row["close_time"] else None))
+
+        return result

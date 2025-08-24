@@ -30,7 +30,7 @@ class TicketType:
     
     @name.setter
     def name(self, value):
-        self.__name == value
+        self.__name = value
 
     @property
     def survey1(self):

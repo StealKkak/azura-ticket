@@ -390,7 +390,7 @@ document.getElementById("globalDeleteButton").addEventListener("click", async (e
 });
 
 document.getElementById("globalSaveButton").addEventListener("click", async (e) => {
-    const ticketName = ticketNameInput;
+    const ticketName = ticketNameInput.value;
     const dupTicket = dupTicketCheckbox.checked;
 
     const survey1 = survey1Input.value;

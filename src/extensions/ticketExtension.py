@@ -84,6 +84,18 @@ async def createTicket(interaction: discord.Interaction, ticketTypeId):
     else:
         category = None
 
+    if not ticketType.dupTicket:
+        openTickets = await Ticket.findOpenTicketByUserIDAndGuildId(interaction.guild.id, interaction.user.id)
+        if openTickets:
+            for openTicket in openTickets:
+                try:
+                    await interaction.guild.fetch_channel(openTicket.channel)
+                    return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "한 번에 한 개의 티켓만 열 수 있습니다!"))
+                except discord.NotFound:
+                    openTicket.status = "deleted"
+                    await openTicket.save()
+                    continue
+
     try:
         ticketChannel = await interaction.guild.create_text_channel(name=f"{interaction.user}님의 티켓", reason="티켓 생성", category=category, overwrites=overwrites)
         ticket = await Ticket.createInstance(interaction.guild.id, interaction.user.id, ticketChannel.id, "open")
