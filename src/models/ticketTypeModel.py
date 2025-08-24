@@ -150,3 +150,12 @@ class TicketType:
             result.append(TicketType(row["guild"], row["name"], bool(row["user_close"]), row["max_ticket"], stringToArray(row["role"]), row["survey1"], row["survey2"], row["survey3"], row["ticket_category"], row["closed_ticket_category"], row["id"]))
         
         return result
+    
+    @staticmethod
+    async def findById(id) -> "TicketType":
+        con, cur = await loadDB()
+        await cur.execute("SELECT * FROM ticket_settings WHERE id = ?", (id,))
+        row = await cur.fetchone()
+        await closeDB(con, cur)
+
+        return TicketType(row["guild"], row["name"], bool(row["user_close"]), row["max_ticket"], stringToArray(row["role"]), row["survey1"], row["survey2"], row["survey3"], row["ticket_category"], row["closed_ticket_category"], row["id"]) if row else None
