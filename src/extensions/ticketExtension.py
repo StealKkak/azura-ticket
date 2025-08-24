@@ -56,7 +56,7 @@ ticketOverwrite = discord.PermissionOverwrite(
     use_application_commands=True,
 )
 
-async def createTicket(interaction: discord.Interaction, ticketTypeId):
+async def createTicket(interaction: discord.Interaction, ticketTypeId, answer1 = None, answer2 = None, answer3 = None):
     overwrites = {}
     overwrites[interaction.user] = ticketOverwrite
     overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
@@ -85,7 +85,7 @@ async def createTicket(interaction: discord.Interaction, ticketTypeId):
         category = None
 
     if not ticketType.dupTicket:
-        openTickets = await Ticket.findOpenTicketByUserIDAndGuildId(interaction.guild.id, interaction.user.id)
+        openTickets = await Ticket.findOpenTicket(interaction.guild.id, interaction.user.id, ticketType.id)
         if openTickets:
             for openTicket in openTickets:
                 try:
@@ -98,14 +98,22 @@ async def createTicket(interaction: discord.Interaction, ticketTypeId):
 
     try:
         ticketChannel = await interaction.guild.create_text_channel(name=f"{interaction.user}님의 티켓", reason="티켓 생성", category=category, overwrites=overwrites)
-        ticket = await Ticket.createInstance(interaction.guild.id, interaction.user.id, ticketChannel.id, "open")
+        ticket = await Ticket.createInstance(interaction.guild.id, interaction.user.id, ticketChannel.id, "open", ticketType=ticketType.id)
     except discord.Forbidden:
         return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "봇의 권한이 부족합니다! 관리자에게 문의해주세요."))
     except:
         traceback.print_exc()
         return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "알 수 없는 오류입니다!"))
     
-    await ticketChannel.send(content="@everyone", embed=makeEmbed("info", "성공", "티켓이 생성되었습니다!"), view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.red, label="티켓 닫기", custom_id=f"TICKET_CLOSE_{interaction.user.id}_{ticketTypeId}")))
+    embed = makeEmbed("info", "성공", "티켓이 생성되었습니다!")
+    if ticketType.survey1:
+        embed.add_field(name=ticketType.survey1, value=answer1, inline=False)
+    if ticketType.survey2:
+        embed.add_field(name=ticketType.survey2, value=answer2, inline=False)
+    if ticketType.survey3:
+        embed.add_field(name=ticketType.survey3, value=answer3, inline=False)
+    
+    await ticketChannel.send(content="@everyone", embed=embed, view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.red, label="티켓 닫기", custom_id=f"TICKET_CLOSE_{interaction.user.id}_{ticketTypeId}")))
     return await interaction.edit_original_response(embed=makeEmbed("info", "성공", f"티켓이 생성되었습니다!"), view=discord.ui.View().add_item(discord.ui.Button(label="티켓으로 가기", style=discord.ButtonStyle.url, url=ticketChannel.jump_url)))
 
 class CreateTicketButton(discord.ui.View):
@@ -221,12 +229,53 @@ class ticketExtension(commands.Cog):
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "요청이 너무 빠릅니다!"), ephemeral=True)
                     
                     if len(parts) > 2:
-                        ticketType = parts[2]
+                        ticketTypeId = parts[2]
                     else:
-                        ticketType = interaction.data.get("values")[0]
+                        ticketTypeId = interaction.data.get("values")[0]
+
+                    ticketType = await TicketType.findById(ticketTypeId)
+                    if ticketType.survey1 or ticketType.survey2 or ticketType.survey3:
+                        modal = discord.ui.Modal(title="양식을 작성해주세요!", timeout=120)
+        
+                        if ticketType.survey1:
+                            survey1Input = discord.ui.TextInput(label=ticketType.survey1, required=True, placeholder="작성해주세요!")
+                            modal.add_item(survey1Input)
+
+                        if ticketType.survey2:
+                            survey2Input = discord.ui.TextInput(label=ticketType.survey2, required=True, placeholder="작성해주세요!")
+                            modal.add_item(survey2Input)
+
+                        if ticketType.survey3:
+                            survey3Input = discord.ui.TextInput(label=ticketType.survey3, required=True, placeholder="작성해주세요!")
+                            modal.add_item(survey3Input)
+
+                        async def onSubmit(mInteraction: discord.Interaction):
+                            try:
+                                survey1Value = survey1Input.value
+                            except NameError:
+                                survey1Value = None
+
+                            try:
+                                survey2Value = survey2Input.value
+                            except NameError:
+                                survey2Value = None
+
+                            try:
+                                survey3Value = survey3Input.value
+                            except NameError:
+                                survey3Value = None
+
+                            if not await checkRate(mInteraction.user.id):
+                                return await mInteraction.response.send_message(embed=makeEmbed("error", "오류", "요청이 너무 빠릅니다!"), ephemeral=True)
+                            
+                            await addRate(mInteraction.user.id)
+                            await createTicket(mInteraction, ticketTypeId, survey1Value, survey2Value, survey3Value)
+
+                        modal.on_submit = onSubmit
+                        return await interaction.response.send_modal(modal)
 
                     await addRate(interaction.user.id)
-                    await createTicket(interaction, ticketType)
+                    await createTicket(interaction, ticketTypeId)
                 
                 elif parts[1] == "CLOSE":
                     try:
