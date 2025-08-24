@@ -1,3 +1,4 @@
+import asyncio
 import io
 import traceback
 
@@ -17,6 +18,31 @@ from models.ticketTypeModel import TicketType
 
 from utils.embedUtil import makeEmbed
 
+lock = asyncio.Lock()
+rateLimits = {}
+WINDOW = 1
+
+async def checkRate(userId):
+    now = asyncio.get_event_loop().time()
+    async with lock:
+        lastTime = rateLimits.get(userId)
+        if lastTime and now - lastTime < 5:
+            return False
+        return True
+    
+async def addRate(userId):
+    now = asyncio.get_event_loop().time()
+    async with lock:
+        rateLimits[userId] = now
+
+async def cleanUpLoop():
+    while True:
+        await asyncio.sleep(10)
+        now = asyncio.get_event_loop().time()
+        async with lock:
+            for userId, lastTime in list(rateLimits.items()):
+                if now - lastTime >= 5:
+                    del rateLimits(userId)
 
 ticketOverwrite = discord.PermissionOverwrite(
     read_messages=True,
@@ -30,7 +56,7 @@ ticketOverwrite = discord.PermissionOverwrite(
     use_application_commands=True,
 )
 
-async def createTicket(interaction: discord.Interaction):
+async def createTicket(interaction: discord.Interaction, ticketTypeId):
     overwrites = {}
     overwrites[interaction.user] = ticketOverwrite
     overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
@@ -90,6 +116,10 @@ async def sendUnregisterdGuildError(interaction):
 class ticketExtension(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.cleanUpTask = bot.loop.create_task(cleanUpLoop())
+
+    def cog_unload(self):
+        self.cleanUpTask.cancel()
 
     @app_commands.command(name="등록", description="이 서버를 등록합니다!")
     @app_commands.guild_install()
@@ -159,6 +189,10 @@ class ticketExtension(commands.Cog):
 
             if parts[0] == "TICKET":
                 if parts[1] == "OPEN":
+                    if not await checkRate(interaction.user.id):
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "요청이 너무 빠릅니다!"), ephemeral=True)
+                    
+                    await addRate(interaction.user.id)
                     await createTicket(interaction)
                 
                 elif parts[1] == "CLOSE":
