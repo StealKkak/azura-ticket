@@ -10,7 +10,7 @@ const loadingSpinner = document.getElementById("loadingSpinner");
 const pathParts = window.location.pathname.split('/').filter(Boolean);
 const guildId = pathParts[pathParts.length - 1];
 
-const maxTicketsInput = document.getElementById("maxTickets");
+const dupTicketCheckbox = document.getElementById("dupTicketCheckbox");
 const ticketNameInput = document.getElementById("ticketName");
 const roleListDropdown = document.getElementById("roleListDropdown");
 const survey1Checkbox = document.getElementById("surveyCheck1");
@@ -296,7 +296,7 @@ document.getElementById("ticketTypeSelect").addEventListener("change", async (e)
         }
 
         ticketNameInput.value = data.data.name;
-        maxTicketsInput.value = data.data.max_ticket;
+        dupTicketCheckbox.checked = data.data.dup_ticket;
 
         survey1Checkbox.checked = Boolean(data.data.survey1);
         survey2Checkbox.checked = Boolean(data.data.survey2);
@@ -390,8 +390,8 @@ document.getElementById("globalDeleteButton").addEventListener("click", async (e
 });
 
 document.getElementById("globalSaveButton").addEventListener("click", async (e) => {
-    const maxTickets = maxTicketsInput.value;
     const ticketName = ticketNameInput;
+    const dupTicket = dupTicketCheckbox.checked;
 
     const survey1 = survey1Input.value;
     const survey2 = survey2Input.value;
@@ -416,7 +416,7 @@ document.getElementById("globalSaveButton").addEventListener("click", async (e) 
         }, 
         body: JSON.stringify({
             name: ticketName,
-            max_ticket: maxTickets,
+            dup_ticket: dupTicket,
             survey1: survey1Checked ? survey1 : null,
             survey2: survey2Checked ? survey2 : null,
             survey3: survey3Checked ? survey3 : null,

@@ -89,7 +89,7 @@ async def handelTicketSetting(guildId, index):
             "survey2": ticket.survey2,
             "survey3": ticket.survey3,
             "role": ticket.role,
-            "max_ticket": ticket.maxTicket,
+            "dup_ticket": bool(ticket.dupTicket),
             "ticket_category": str(ticket.ticketCategory),
             "closed_ticket_category": str(ticket.closedTicketCategory),
             "user_close": bool(ticket.userClose)
@@ -112,7 +112,7 @@ async def handelTicketSetting(guildId, index):
             ticket.survey2 = body.get("survey2")
             ticket.survey3 = body.get("survey3")
             ticket.role = body.get("role")
-            ticket.maxTicket = body.get("max_ticket")
+            ticket.dupTicket = bool(body.get("dup_ticket"))
             ticket.ticketCategory = body.get("ticket_category")
             ticket.closedTicketCategory = body.get("closed_ticket_category")
             ticket.userClose = bool(body.get("user_close"))
