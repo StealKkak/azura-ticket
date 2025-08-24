@@ -13,6 +13,7 @@ import chat_exporter
 from services.dbService import *
 
 from models.ticketModel import Ticket
+from models.ticketTypeModel import TicketType
 
 from utils.embedUtil import makeEmbed
 
@@ -30,9 +31,16 @@ ticketOverwrite = discord.PermissionOverwrite(
 )
 
 class CreateTicketButton(discord.ui.View):
-    def __init__(self, buttonLabel):
+    def __init__(self, buttonLabel, ticketTypes: list[TicketType]):
         super().__init__()
-        self.add_item(discord.ui.Button(label=buttonLabel, style=discord.ButtonStyle.blurple, custom_id="TICKET_OPEN"))
+
+        if len(ticketTypes) == 1:  
+            self.add_item(discord.ui.Button(label=buttonLabel, style=discord.ButtonStyle.blurple, custom_id=f"TICKET_OPEN_{ticketTypes[0]}"))
+            return
+        
+        self.add_item(discord.ui.Select(custom_id="TICKET_OPEN", placeholder=buttonLabel, min_values=1, max_values=1, options=[
+            discord.SelectOption(label=ticketType.name, value=f"TICKET_OPEN_{ticketType.id}") for ticketType in ticketTypes
+        ]))
 
 class CloseTicketButton(discord.ui.View):
     def __init__(self):
@@ -91,10 +99,33 @@ class ticketExtension(commands.Cog):
         title = row["title"]
         description = row["description"]
         buttonLabel = row["button_label"]
-
         embed = makeEmbed("info", title, description)
-        await interaction.channel.send(embed=embed, view=CreateTicketButton(buttonLabel))
-        return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓 안내 메시지를 전송하였습니다!"), ephemeral=True)
+
+        tickets = await TicketType.findByGuildId(interaction.guild.id)
+        if len(tickets) <= 1:
+            if len(tickets) < 0:
+                ticket = await TicketType.createInstance(interaction.guild.id, "기본 티켓", True, 1, None)
+            else:
+                ticket = tickets[0]
+
+            await interaction.channel.send(embed=embed, view=CreateTicketButton(buttonLabel, [ticket]))
+            return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓 안내 메시지를 전송하였습니다!"), ephemeral=True)
+        else:
+            view = discord.ui.View(timeout=120)
+            select = discord.ui.Select(placeholder="사용할 티켓 종류를 선택해주세요", min_values=1, max_values=len(tickets), options=[
+                discord.SelectOption(label=ticket.name, value=ticket.id) for ticket in tickets
+            ])
+            
+            async def callback(mInteraction: discord.Interaction):
+                values = select.values
+                selectedTicketTypes = [ticket for ticket in tickets if str(ticket.id) in values]
+                await interaction.channel.send(embed=embed, view=CreateTicketButton(buttonLabel, selectedTicketTypes))
+                return await interaction.edit_original_response(embed=makeEmbed("info", "성공", "티켓 안내 메시지를 전송하였습니다!"), view=None)
+            
+            select.callback = callback
+            view.add_item(select)
+
+            return await interaction.response.send_message(view=view, ephemeral=True)
     
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):

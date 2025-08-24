@@ -17,6 +17,10 @@ class TicketType:
         self.__id = id
 
     @property
+    def id(self):
+        return self.__id
+
+    @property
     def guild(self):
         return self.__guild
     
@@ -122,8 +126,9 @@ class TicketType:
         
         await cur.execute("INSERT INTO ticket_settings (guild, name, survey1, survey2, survey3, role, user_close, max_ticket, ticket_category, closed_ticket_category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (guild, name, survey1, survey2, survey3, arrayToString(role), 1 if userClose else 0, maxTicket if maxTicket else 0, ticketCategory, closedTicketCategory))
         await con.commit()
+        id = cur.lastrowid
         await closeDB(con, cur)
-        return TicketType(guild, name, userClose, maxTicket, role, survey1, survey2, survey3, ticketCategory, closedTicketCategory)
+        return TicketType(guild, name, userClose, maxTicket, role, survey1, survey2, survey3, ticketCategory, closedTicketCategory, id)
 
     @staticmethod
     async def findByGuildIdAndName(guildId, name) -> "TicketType":
