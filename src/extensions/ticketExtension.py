@@ -30,6 +30,30 @@ ticketOverwrite = discord.PermissionOverwrite(
     use_application_commands=True,
 )
 
+async def createTicket(interaction: discord.Interaction):
+    overwrites = {}
+    overwrites[interaction.user] = ticketOverwrite
+    overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
+    try:
+        channel = await interaction.guild.create_text_channel(name=f"{interaction.user.name} 님의 티켓", overwrites=overwrites)
+
+        await interaction.response.defer(ephemeral=True)
+
+        con, cur = await loadDB()
+        await cur.execute("INSERT INTO tickets (guild, user, channel, open_time) VALUES (?, ?, ?, ?)", (interaction.guild.id, interaction.user.id, channel.id, datetime.now().isoformat()))
+        await con.commit()
+        await closeDB(con, cur)
+
+        await channel.send(embed=makeEmbed("info", "티켓 닫기", "티켓을 닫으시려면 아래 버튼을 눌러주세요!"), view=CloseTicketButton(), content="@everyone")
+    except Exception as e:
+        print(traceback.print_exc())
+        try:
+            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓 생성 실패"), ephemeral=True)
+        except:
+            return await interaction.followup.send(embed=makeEmbed("error", "오류", "티켓 생성 실패"))
+
+    return await interaction.followup.send(embed=makeEmbed("info", "성공", f"티켓 생성을 성공하였습니다!\n{channel.jump_url}"), ephemeral=True)
+
 class CreateTicketButton(discord.ui.View):
     def __init__(self, buttonLabel, ticketTypes: list[TicketType]):
         super().__init__()
@@ -135,28 +159,7 @@ class ticketExtension(commands.Cog):
 
             if parts[0] == "TICKET":
                 if parts[1] == "OPEN":
-                    overwrites = {}
-                    overwrites[interaction.user] = ticketOverwrite
-                    overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
-                    try:
-                        channel = await interaction.guild.create_text_channel(name=f"{interaction.user.name} 님의 티켓", overwrites=overwrites)
-
-                        await interaction.response.defer(ephemeral=True)
-
-                        con, cur = await loadDB()
-                        await cur.execute("INSERT INTO tickets (guild, user, channel, open_time) VALUES (?, ?, ?, ?)", (interaction.guild.id, interaction.user.id, channel.id, datetime.now().isoformat()))
-                        await con.commit()
-                        await closeDB(con, cur)
-
-                        await channel.send(embed=makeEmbed("info", "티켓 닫기", "티켓을 닫으시려면 아래 버튼을 눌러주세요!"), view=CloseTicketButton(), content="@everyone")
-                    except Exception as e:
-                        print(traceback.print_exc())
-                        try:
-                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓 생성 실패"), ephemeral=True)
-                        except:
-                            return await interaction.followup.send(embed=makeEmbed("error", "오류", "티켓 생성 실패"))
-
-                    return await interaction.followup.send(embed=makeEmbed("info", "성공", f"티켓 생성을 성공하였습니다!\n{channel.jump_url}"), ephemeral=True)
+                    await createTicket(interaction)
                 
                 elif parts[1] == "CLOSE":
                     try:
