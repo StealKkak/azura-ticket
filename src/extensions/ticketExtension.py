@@ -42,7 +42,7 @@ async def cleanUpLoop():
         async with lock:
             for userId, lastTime in list(rateLimits.items()):
                 if now - lastTime >= 5:
-                    del rateLimits(userId)
+                    del rateLimits[userId]
 
 ticketOverwrite = discord.PermissionOverwrite(
     read_messages=True,
@@ -60,36 +60,52 @@ async def createTicket(interaction: discord.Interaction, ticketTypeId):
     overwrites = {}
     overwrites[interaction.user] = ticketOverwrite
     overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
-    try:
-        channel = await interaction.guild.create_text_channel(name=f"{interaction.user.name} 님의 티켓", overwrites=overwrites)
+    
+    await interaction.response.send_message(embed=makeEmbed("info", "잠시만 기다려주세요", "티켓을 열고 있습니다..."), ephemeral=True)
 
-        await interaction.response.defer(ephemeral=True)
-
-        con, cur = await loadDB()
-        await cur.execute("INSERT INTO tickets (guild, user, channel, open_time) VALUES (?, ?, ?, ?)", (interaction.guild.id, interaction.user.id, channel.id, datetime.now().isoformat()))
-        await con.commit()
-        await closeDB(con, cur)
-
-        await channel.send(embed=makeEmbed("info", "티켓 닫기", "티켓을 닫으시려면 아래 버튼을 눌러주세요!"), view=CloseTicketButton(), content="@everyone")
-    except Exception as e:
-        print(traceback.print_exc())
+    ticketType = await TicketType.findById(ticketTypeId)
+    if not ticketType:
+        return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "현재 열려고 하는 티켓의 설정이 삭제되었습니다! 관리자에게 문의해주세요."))
+    
+    if ticketType.ticketCategory:
         try:
-            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓 생성 실패"), ephemeral=True)
+            category = await interaction.guild.fetch_channel(ticketType.ticketCategory)
+        except discord.NotFound:
+            return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "티켓 카테고리 설정이 잘못되었습니다! 관리자에게 문의해주세요."))
         except:
-            return await interaction.followup.send(embed=makeEmbed("error", "오류", "티켓 생성 실패"))
+            traceback.print_exc()
+            return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "알 수 없는 오류입니다!"))
+        
+        overwrites = category.overwrites.copy()
+        overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
+        overwrites[interaction.user] = ticketOverwrite
+        for role in ticketType.role:
+            overwrites[discord.Object(role)] = ticketOverwrite
+    else:
+        category = None
 
-    return await interaction.followup.send(embed=makeEmbed("info", "성공", f"티켓 생성을 성공하였습니다!\n{channel.jump_url}"), ephemeral=True)
+    try:
+        ticketChannel = await interaction.guild.create_text_channel(name=f"{interaction.user}님의 티켓", reason="티켓 생성", category=category, overwrites=overwrites)
+        ticket = await Ticket.createInstance(interaction.guild.id, interaction.user.id, ticketChannel.id, "open")
+    except discord.Forbidden:
+        return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "봇의 권한이 부족합니다! 관리자에게 문의해주세요."))
+    except:
+        traceback.print_exc()
+        return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "알 수 없는 오류입니다!"))
+    
+    await ticketChannel.send(content="@everyone", embed=makeEmbed("info", "성공", "티켓이 생성되었습니다!"), view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.red, label="티켓 닫기", custom_id=f"TICKET_CLOSE_{interaction.user.id}_{ticketTypeId}")))
+    return await interaction.edit_original_response(embed=makeEmbed("info", "성공", f"티켓이 생성되었습니다!"), view=discord.ui.View().add_item(discord.ui.Button(label="티켓으로 가기", style=discord.ButtonStyle.url, url=ticketChannel.jump_url)))
 
 class CreateTicketButton(discord.ui.View):
     def __init__(self, buttonLabel, ticketTypes: list[TicketType]):
         super().__init__()
 
         if len(ticketTypes) == 1:  
-            self.add_item(discord.ui.Button(label=buttonLabel, style=discord.ButtonStyle.blurple, custom_id=f"TICKET_OPEN_{ticketTypes[0]}"))
+            self.add_item(discord.ui.Button(label=buttonLabel, style=discord.ButtonStyle.blurple, custom_id=f"TICKET_OPEN_{ticketTypes[0].id}"))
             return
         
         self.add_item(discord.ui.Select(custom_id="TICKET_OPEN", placeholder=buttonLabel, min_values=1, max_values=1, options=[
-            discord.SelectOption(label=ticketType.name, value=f"TICKET_OPEN_{ticketType.id}") for ticketType in ticketTypes
+            discord.SelectOption(label=ticketType.name, value=ticketType.id) for ticketType in ticketTypes
         ]))
 
 class CloseTicketButton(discord.ui.View):
@@ -157,7 +173,7 @@ class ticketExtension(commands.Cog):
 
         tickets = await TicketType.findByGuildId(interaction.guild.id)
         if len(tickets) <= 1:
-            if len(tickets) < 0:
+            if len(tickets) == 0:
                 ticket = await TicketType.createInstance(interaction.guild.id, "기본 티켓", True, 1, None)
             else:
                 ticket = tickets[0]
@@ -192,8 +208,13 @@ class ticketExtension(commands.Cog):
                     if not await checkRate(interaction.user.id):
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "요청이 너무 빠릅니다!"), ephemeral=True)
                     
+                    if len(parts) > 2:
+                        ticketType = parts[2]
+                    else:
+                        ticketType = interaction.data.get("values")[0]
+
                     await addRate(interaction.user.id)
-                    await createTicket(interaction)
+                    await createTicket(interaction, ticketType)
                 
                 elif parts[1] == "CLOSE":
                     try:
