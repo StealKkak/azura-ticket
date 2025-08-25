@@ -8,3 +8,4 @@ transcriptions/*
 images/*
 !images/.gitkeep
 config.ini
+static/attachments

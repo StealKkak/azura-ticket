@@ -1,5 +1,8 @@
 import asyncio
 import io
+import os
+import re
+import sys
 import traceback
 
 from datetime import *
@@ -9,7 +12,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import chat_exporter
+
+from lxml import etree
 
 from services.dbService import *
 
@@ -21,6 +27,20 @@ from utils.embedUtil import makeEmbed
 lock = asyncio.Lock()
 rateLimits = {}
 WINDOW = 1
+
+domain = os.getenv("DOMAIN")
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+def replaceDiscordUrlsInHtml(html: str, guildId: int, domain: str) -> str:
+    pattern = r"https://media\.discordapp\.net/attachments/(\d+)/(\d+)/([\w\-.]+)"
+    
+    def repl(match):
+        channelId, attachmentId, filename = match.groups()
+        ext = os.path.splitext(filename)[1]
+        return f"{domain.rstrip('/')}/static/attachments/{guildId}/{channelId}/{attachmentId}{ext}"
+    
+    return re.sub(pattern, repl, html)
 
 async def checkRate(userId):
     now = asyncio.get_event_loop().time()
@@ -44,6 +64,13 @@ async def cleanUpLoop():
                 if now - lastTime >= 5:
                     del rateLimits[userId]
 
+async def processHtmlString(htmlString: str):
+    parser = etree.HTMLParser(recover=True)
+    tree = etree.fromstring(htmlString.encode("utf-8"), parser=parser)
+
+    for div in tree.xpath("//div[@class='info']"):
+        div.getparent().remove(div)
+    
 ticketOverwrite = discord.PermissionOverwrite(
     read_messages=True,
     send_messages=True,
@@ -234,6 +261,9 @@ class ticketExtension(commands.Cog):
                         ticketTypeId = interaction.data.get("values")[0]
 
                     ticketType = await TicketType.findById(ticketTypeId)
+                    if not ticketType:
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "현재 열려고 하는 티켓의 설정이 삭제되었습니다! 관리자에게 문의해주세요."), ephemeral=True)
+                    
                     if ticketType.survey1 or ticketType.survey2 or ticketType.survey3:
                         modal = discord.ui.Modal(title="양식을 작성해주세요!", timeout=120)
         
@@ -298,38 +328,51 @@ class ticketExtension(commands.Cog):
 
                         try:
                             category = await interaction.guild.fetch_channel(ticketType.closedTicketCategory)
-                        except discord.NotFound:
-                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "닫은 티켓 카테고리 설정이 유효하지 않아 티켓을 닫을 수 없습니다!"), view=discord.ui.View(discord.ui.Button(label="티켓 삭제", style=discord.ButtonStyle.danger, custom_id="TICKET_DELETE_ERROR")), ephemeral=True)
+                        except:
+                            category = None
 
                         ticket.status = "closed"
                         await ticket.save()
-                        await interaction.channel.edit(category=category)
+                        
+                        if category:
+                            await interaction.channel.edit(category=category)
+
                         return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓이 닫혔습니다!"), view=closedButton())
                     except:
-                        print(traceback.print_exc())
+                        traceback.print_exc()
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 닫을 수 없습니다!"), ephemeral=True)
                     
                 elif parts[1] == "REOPEN":
+                    ticket = await Ticket.findByChannelId(interaction.channel.id)
+                    if ticket.status != "closed":
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "닫힌 티켓이 아닙니다!"), ephemeral=True)
+                    
+                    ticketType = await TicketType.findById(ticket.ticketType)
+                    if not ticketType:
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "삭제된 티켓 종류이기 때문에 티켓을 다시 열 수 없습니다!"), ephemeral=True)
+                    
                     try:
-                        ticket = await Ticket.findByChannelId(interaction.channel.id)
-                        if ticket.status != "closed":
-                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "닫힌 티켓이 아닙니다!"), ephemeral=True)
-                        
+                        category = await interaction.guild.fetch_channel(ticketType.ticketCategory)
+                    except discord.NotFound:
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "유효하지 않은 티켓 카테고리 입니다!"))
+
+                    try:
                         overwrites = {}
                         member = await interaction.guild.fetch_member(ticket.user)
                         overwrites[member] = ticketOverwrite
                         overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
                         await interaction.channel.edit(overwrites=overwrites)
-
-                        ticket.status = "open"
-                        await ticket.save()
-
-                        return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓을 다시 열었습니다!"), view=CloseTicketButton())
                     except discord.NotFound:
-                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "유저가 서버를 나가서 티켓을 다시 열 수 없습니다!"), ephemeral=True)
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "유저가 서버를 나갔습니다!"), ephemeral=True)
                     except:
-                        print(traceback.print_exc())
-                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 다시 열 수 없습니다!"), ephemeral=True)
+                        traceback.print_exc()
+                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "알 수 없는 오류입니다!"), ephemeral=True)
+                    
+                    await interaction.channel.edit(category=category)
+                    ticket.status = "open"
+                    await ticket.save()
+
+                    return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓을 다시 열었습니다!"), view=CloseTicketButton())
                     
                 elif parts[1] == "DELETE":
                     try:
@@ -337,9 +380,22 @@ class ticketExtension(commands.Cog):
                         if ticket.status != "closed":
                             return await interaction.response.send_message(embed=makeEmbed("error", "오류", "닫힌 티켓이 아닙니다!"), ephemeral=True)
                         
-                        transcription = await chat_exporter.export(interaction.channel)
-                        fileBuffer = io.BytesIO(transcription.encode("utf-8"))
-                        file = discord.File(fp=fileBuffer, filename="transcription.html")
+                        async for message in interaction.channel.history(limit=None):
+                            for attachment in message.attachments:
+                                if attachment.size <= 5 * 1024 * 1024:
+                                    file_path = os.path.join(getAttachDir(interaction.guild.id, interaction.channel.id, attachment.id), attachment.filename)
+                                    if not os.path.exists(file_path):
+                                        await attachment.save(file_path)
+                                        print(f"Saved image: {file_path}")
+                                    else:
+                                        print(f"Skipped {attachment.filename}, already exists")
+                                else:
+                                    print(f"Skipped {attachment.filename}, file too large ({attachment.size} bytes)")
+
+                        transcript = await chat_exporter.export(interaction.channel)
+                        transcript = transcript.replace("https://media.discordapp.net/attachments", f"{domain}/static/attachments/{interaction.guild.id}")
+                        fileBuffer = io.BytesIO(transcript.encode("utf-8"))
+                        file = discord.File(fp=fileBuffer, filename="transcript.html")
                         await interaction.user.send(file=file)
 
                         await interaction.channel.delete()
