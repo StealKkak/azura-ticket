@@ -7,3 +7,4 @@ transcriptions/*
 .DS_Store
 images/*
 !images/.gitkeep
+config.ini

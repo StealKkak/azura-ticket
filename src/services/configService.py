@@ -14,8 +14,9 @@ if not configPath.exists():
 
     with configPath.open("w", encoding="utf-8") as f:
         config.write(f)
-        print("config.ini 파일이 생성되었습니다. 수정하고 다시 실행해주세요!")
-        os.abort()
+        
+    print("config.ini 파일이 생성되었습니다. 수정하고 다시 실행해주세요!")
+    os.abort()
 
 config.read(configPath, encoding="utf-8")
 
