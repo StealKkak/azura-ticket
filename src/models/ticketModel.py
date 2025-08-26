@@ -5,7 +5,7 @@ from services.dbService import *
 from utils.arrayUtil import *
 
 class Ticket():
-    def __init__(self, guild: str, user: str, channel: str, ticket_status: str, ticketType: int, open_time: datetime = None, close_time: datetime = None):
+    def __init__(self, guild: int, user: int, channel: str, ticket_status: str, ticketType: int, open_time: datetime = None, close_time: datetime = None):
         self.__guild = guild
         self.__user = user
         self.__channel = channel
@@ -16,15 +16,15 @@ class Ticket():
 
     @property
     def guild(self):
-        return self.__guild
+        return int(self.__guild)
     
     @property
     def user(self):
-        return self.__user
+        return int(self.__user)
     
     @property
     def channel(self):
-        return self.__channel
+        return int(self.__channel)
     
     @property
     def status(self):
@@ -55,7 +55,7 @@ class Ticket():
     @openTime.setter
     def openTime(self, value: datetime):
         if value is None:
-            self.__close_time = None
+            self.__openTime = None
             return
         
         self.__openTime = datetime.isoformat(value)

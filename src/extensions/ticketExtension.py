@@ -457,6 +457,7 @@ class ticketExtension(commands.Cog):
                                 status = "deleted"
 
                             await mInteraction.channel.delete()
+                            ticket.closeTime = datetime.now()
                             ticket.status = status
                             await ticket.save()
                         except:

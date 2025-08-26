@@ -23,7 +23,10 @@ const ticketCategoryList = document.getElementById("ticketCategoryList");
 const closedTicketCategoryList = document.getElementById("closedTicketCategoryList");
 const ticketCategorySelect = document.getElementById("ticketCategorySelect");
 const closedTicketCategorySelect = document.getElementById("closedTicketCategorySelect");
-const userCloseCheckbox = document.getElementById("userCloseCheckbox")
+const userCloseCheckbox = document.getElementById("userCloseCheckbox");
+
+let currentPage = 1;
+let currentTickets = [];
 
 containerList = [actionContainer, ticketListContainer, ticketSelectContainer];
 let ticketTypeIndex;
@@ -46,6 +49,8 @@ document.getElementById("ticketSettingButton").addEventListener("click", async (
 document.getElementById("ticketListButton").addEventListener("click", async () => {
     actionContainer.classList.add("d-none");
     ticketListContainer.classList.remove("d-none");
+    const ticketList = await fetchTicketList();
+    renderTickets(ticketList);
 });
 
 function showSpinner() {
@@ -87,20 +92,26 @@ function renderTicketTypeList(ticketTypeListArray) {
     });
 }
 
-async function fetchTicketList(query = "") {
+async function fetchTicketList(query = "", page = undefined) {
     showSpinner();
     try {
-        let url = `/api/tickets/ticketlist?guild_id=${guildId}`;
+        let url = `/api/ticket/${guildId}`;
+
         if (query) {
             url += `&query=${encodeURIComponent(query)}`;
         }
+
+        if (page) {
+            url += `&page=${encodeURIComponent(page)}`
+        }
+
         const response = await fetch(url);
         const data = await response.json();
 
         if (!response.ok) {
             throw new Error(data.error || "불러오기 실패");
         }
-        return Array.isArray(data) ? data : data.tickets || [];
+        return Array.isArray(data.data) ? data.data : data.data || [];
     } catch (error) {
         alert(error.message);
         return [];
@@ -125,9 +136,9 @@ function renderTickets(tickets) {
     ticketListBody.innerHTML = pageTickets.map(ticket => `
         <tr>
             <td>${ticket.username}</td>
-            <td>${ticket.datetime}</td>
+            <td>${ticket.close_time}</td>
             <td>
-                <a href="/tickets/${guildId}/${ticket.path}" target="_blank">
+                <a href="/ticket/${guildId}/${ticket.path}" target="_blank">
                     <button class="btn btn-sm btn-outline-primary">보기</button>
                 </a>
             </td>
@@ -168,9 +179,13 @@ function renderPagination(current, totalPages) {
 
     pagination.querySelectorAll("button").forEach(btn => {
         if (!btn.parentElement.classList.contains("disabled")) {
-            btn.addEventListener("click", () => {
+            btn.addEventListener("click", async () => {
                 currentPage = Number(btn.dataset.page);
-                renderTickets(currentTickets);
+                const tickets = await fetchTicketList(currentPage, query);
+
+                currentPage = page;
+                renderTickets(tickets);
+
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
         }
