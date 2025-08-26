@@ -32,7 +32,7 @@ class Ticket():
     
     @status.setter
     def status(self, value):
-        if value not in ["open", "closed", "deleted"]:
+        if value not in ["open", "closed", "deleted", "saved"]:
             raise ValueError("Invalid ticket status")
         
         self.__ticket_status = value

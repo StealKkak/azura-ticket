@@ -1,7 +1,7 @@
+import aiofiles
+import aiofiles.os
 import asyncio
-import io
 import os
-import re
 import sys
 import traceback
 
@@ -15,7 +15,9 @@ from discord.ext import commands
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import chat_exporter
 
-from lxml import etree
+from bs4 import BeautifulSoup
+
+import services.configService as setting
 
 from services.dbService import *
 
@@ -24,27 +26,15 @@ from models.ticketTypeModel import TicketType
 
 from utils.embedUtil import makeEmbed
 
-lock = asyncio.Lock()
+domain = os.getenv("DOMAIN")
+
+rateLimitLock = asyncio.Lock()
 rateLimits = {}
 WINDOW = 1
 
-domain = os.getenv("DOMAIN")
-
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-
-def replaceDiscordUrlsInHtml(html: str, guildId: int, domain: str) -> str:
-    pattern = r"https://media\.discordapp\.net/attachments/(\d+)/(\d+)/([\w\-.]+)"
-    
-    def repl(match):
-        channelId, attachmentId, filename = match.groups()
-        ext = os.path.splitext(filename)[1]
-        return f"{domain.rstrip('/')}/static/attachments/{guildId}/{channelId}/{attachmentId}{ext}"
-    
-    return re.sub(pattern, repl, html)
-
 async def checkRate(userId):
     now = asyncio.get_event_loop().time()
-    async with lock:
+    async with rateLimitLock:
         lastTime = rateLimits.get(userId)
         if lastTime and now - lastTime < 5:
             return False
@@ -52,25 +42,45 @@ async def checkRate(userId):
     
 async def addRate(userId):
     now = asyncio.get_event_loop().time()
-    async with lock:
+    async with rateLimitLock:
         rateLimits[userId] = now
 
 async def cleanUpLoop():
     while True:
         await asyncio.sleep(10)
         now = asyncio.get_event_loop().time()
-        async with lock:
+        async with rateLimitLock:
             for userId, lastTime in list(rateLimits.items()):
                 if now - lastTime >= 5:
                     del rateLimits[userId]
 
-async def processHtmlString(htmlString: str):
-    parser = etree.HTMLParser(recover=True)
-    tree = etree.fromstring(htmlString.encode("utf-8"), parser=parser)
+closingTicketLock = asyncio.Lock()
+closingTickets: set[int] = set()
 
-    for div in tree.xpath("//div[@class='info']"):
-        div.getparent().remove(div)
-    
+async def isClosingTicket(channelId) -> bool:
+    async with closingTicketLock:
+        return channelId in closingTickets
+
+async def appendClosingTicket(channelId):
+    async with closingTicketLock:
+        closingTickets.add(channelId)
+
+async def delClosingTicket(channelId):
+    async with closingTicketLock:
+        closingTickets.discard(channelId)
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+async def getAttachDir(guildId, channelId, attachId):
+    path = os.path.join(BASE_DIR, "static", "attach", str(guildId), str(channelId), str(attachId))
+    await aiofiles.os.makedirs(path, exist_ok=True)
+    return path
+
+async def getTranscriptDir(guildId):
+    path = os.path.join(BASE_DIR, "transcripts", str(guildId))
+    await aiofiles.os.makedirs(path, exist_ok=True)
+    return path
+
 ticketOverwrite = discord.PermissionOverwrite(
     read_messages=True,
     send_messages=True,
@@ -143,6 +153,43 @@ async def createTicket(interaction: discord.Interaction, ticketTypeId, answer1 =
     await ticketChannel.send(content="@everyone", embed=embed, view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.red, label="티켓 닫기", custom_id=f"TICKET_CLOSE_{interaction.user.id}_{ticketTypeId}")))
     return await interaction.edit_original_response(embed=makeEmbed("info", "성공", f"티켓이 생성되었습니다!"), view=discord.ui.View().add_item(discord.ui.Button(label="티켓으로 가기", style=discord.ButtonStyle.url, url=ticketChannel.jump_url)))
 
+async def transcriptTicket(interaction: discord.Interaction):
+    async for message in interaction.channel.history(limit=None):
+        for attachment in message.attachments:
+            if attachment.size <= 5 * 1024 * 1024:
+                attach_dir = await getAttachDir(interaction.guild.id, interaction.channel.id, attachment.id)
+                await aiofiles.os.makedirs(attach_dir, exist_ok=True)
+                file_path = os.path.join(attach_dir, attachment.filename)
+
+                if not await aiofiles.os.path.exists(file_path):
+                    await attachment.save(file_path)
+                    print(f"Saved file: {file_path}")
+                else:
+                    print(f"Skipped {attachment.filename}, already exists")
+            else:
+                print(f"Skipped {attachment.filename}, file too large ({attachment.size} bytes)")
+
+    transcript = await chat_exporter.export(interaction.channel)
+    transcript = transcript.replace(
+        "https://media.discordapp.net/attachments",
+        f"{domain}/static/attachments/{interaction.guild.id}"
+    )
+
+    soup = BeautifulSoup(transcript, "html.parser")
+
+    for style_tag in soup.find_all("style"):
+        style_tag.decompose()
+
+    new_link_tag = soup.new_tag("link", rel="stylesheet", href="/static/css/style.css")
+    soup.head.append(new_link_tag)
+
+    transcript = str(soup)
+
+    transcriptDir = await getTranscriptDir(interaction.guild.id)
+    path = os.path.join(transcriptDir, f"{interaction.channel.id}.html")
+    async with aiofiles.open(path, "w", encoding="utf-8") as f:
+        await f.write(transcript) 
+
 class CreateTicketButton(discord.ui.View):
     def __init__(self, buttonLabel, ticketTypes: list[TicketType]):
         super().__init__()
@@ -177,7 +224,7 @@ async def sendUnregisterdGuildError(interaction):
     await interaction.response.send_message(embed=makeEmbed("error", "오류", "등록되지 않은 서버입니다!"), ephemeral=True)
 
 class ticketExtension(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
         self.cleanUpTask = bot.loop.create_task(cleanUpLoop())
 
@@ -375,35 +422,56 @@ class ticketExtension(commands.Cog):
                     return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓을 다시 열었습니다!"), view=CloseTicketButton())
                     
                 elif parts[1] == "DELETE":
-                    try:
-                        ticket = await Ticket.findByChannelId(interaction.channel.id)
-                        if ticket.status != "closed":
-                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "닫힌 티켓이 아닙니다!"), ephemeral=True)
-                        
-                        async for message in interaction.channel.history(limit=None):
-                            for attachment in message.attachments:
-                                if attachment.size <= 5 * 1024 * 1024:
-                                    file_path = os.path.join(getAttachDir(interaction.guild.id, interaction.channel.id, attachment.id), attachment.filename)
-                                    if not os.path.exists(file_path):
-                                        await attachment.save(file_path)
-                                        print(f"Saved image: {file_path}")
-                                    else:
-                                        print(f"Skipped {attachment.filename}, already exists")
-                                else:
-                                    print(f"Skipped {attachment.filename}, file too large ({attachment.size} bytes)")
+                    view = discord.ui.View(timeout=120)
+                    saveButton = discord.ui.Button(style=discord.ButtonStyle.blurple, label="💾ㅣ저장하기", custom_id="save")
+                    deleteButton = discord.ui.Button(style=discord.ButtonStyle.danger, label="🗑️ㅣ삭제하기", custom_id="delete")
+                    
+                    async def callback(mInteraction: discord.Interaction):
+                        if await isClosingTicket(interaction.channel.id):
+                            return await mInteraction.response.send_message(embed=makeEmbed("error", "오류", "삭제하고 있는 티켓입니다!"), ephemeral=True)
+                        try:
+                            await interaction.edit_original_response(embed=makeEmbed("info", "티켓 삭제", "티켓을 삭제하고 있습니다..."), view=None)
+                            await mInteraction.response.defer(ephemeral=True)
 
-                        transcript = await chat_exporter.export(interaction.channel)
-                        transcript = transcript.replace("https://media.discordapp.net/attachments", f"{domain}/static/attachments/{interaction.guild.id}")
-                        fileBuffer = io.BytesIO(transcript.encode("utf-8"))
-                        file = discord.File(fp=fileBuffer, filename="transcript.html")
-                        await interaction.user.send(file=file)
+                            await appendClosingTicket(interaction.channel.id)
 
-                        await interaction.channel.delete()
-                        ticket.status = "deleted"
-                        await ticket.save()
-                    except:
-                        print(traceback.print_exc())
-                        await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 삭제할 수 없습니다!"), ephemeral=True)
+                            ticket = await Ticket.findByChannelId(mInteraction.channel.id)
+                            if ticket.status != "closed":
+                                return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "닫힌 티켓이 아닙니다!"))
+
+                            if mInteraction.data["custom_id"] == "save": #티켓 저장 여부: 참
+                                file = await transcriptTicket(mInteraction)
+                                status = "saved"
+
+                                try:
+                                    user = await interaction.guild.fetch_member(ticket.user)
+                                    embed = makeEmbed("info", setting.serviceName, "티켓이 닫혔습니다!")
+                                    embed.add_field(name="닫은 사람", value=interaction.user.mention)
+                                    embed.set_author(name=interaction.guild.name, icon_url=interaction.guild.icon.url)
+                                    await user.send(embed=embed, view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.url, label="대화내옹 보기", url=f"{domain}/ticket/{interaction.guild.id}/{interaction.channel.id}")))
+                                except discord.NotFound:
+                                    pass
+                                except:
+                                    traceback.print_exc()
+                            else:
+                                status = "deleted"
+
+                            await mInteraction.channel.delete()
+                            ticket.status = status
+                            await ticket.save()
+                        except:
+                            print(traceback.print_exc())
+                            await interaction.edit_original_response(embed=makeEmbed("error", "오류", "티켓을 삭제할 수 없습니다!"))
+                        finally:
+                            await delClosingTicket(interaction.channel.id)
+
+                    saveButton.callback = callback
+                    deleteButton.callback = callback
+
+                    view.add_item(saveButton)
+                    view.add_item(deleteButton)
+
+                    await interaction.response.send_message(embed=makeEmbed("info", "티켓 삭제", "티켓 대화내역을 저장하시겠습니까?"), ephemeral=True, view=view)
 
 async def setup(bot):
     await bot.add_cog(ticketExtension(bot))
