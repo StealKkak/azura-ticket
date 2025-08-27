@@ -23,11 +23,17 @@ async def getTicketList(guildId):
             return jsonify({"error": "You don't have permission to perform this action"}), 403
         
     tickets = await Ticket.findByGuildId(guildId)
-    query = request.args.get("query")
+    query = request.args.get("query", "").lower()
+    pageStr = request.args.get("page", 1)
     filteredTickets = [ticket for ticket in tickets if ticket.status == "saved"]
 
-    if query:
-        tickets = [ticket for ticket in tickets if query in ticket.name or ticket.user == query]
+    try:
+        page = int(pageStr)
+    except ValueError:
+        return jsonify({"error": "page must be an integer!"}), 400
+
+    if page < 1:
+        return jsonify({"error": "page must be 1 or greater!"}), 400
 
     try:
         guild = await bot.fetch_guild(guildId)
@@ -51,11 +57,21 @@ async def getTicketList(guildId):
             userList[int(row["id"])] = row["name"]
     await closeDB(con, cur)
 
+    if query:
+        filteredTickets = [ticket for ticket in filteredTickets if query == ticket.user or  query in str(userList.get(ticket.user))]
+
+    start = (page - 1) * 10
+    end = start + 10
+    paginatedTickets = filteredTickets[start:end]
+    totalPages = (len(filteredTickets) + 9) // 10
+
     return jsonify({"data": [{
-        "guild_id": ticket.guild,
-        "username": userList.get(ticket.user, ticket.user),
-        "channel_id": ticket.channel,
+        "guild_id": str(ticket.guild),
+        "username": str(userList.get(ticket.user, ticket.user)),
+        "channel_id": str(ticket.channel),
         "ticket_status": ticket.status,
         "open_time": ticket.openTime,
         "close_time": ticket.closeTime.strftime("%Y-%m-%d %H:%M") if ticket.closeTime else None
-    } for ticket in filteredTickets]})
+    } for ticket in paginatedTickets],
+    "total_pages": totalPages,
+    "current_page": page})

@@ -100,7 +100,7 @@ class Ticket():
         row = await cur.fetchone()
         await closeDB(con, cur)
 
-        return Ticket(row["guild"], row["user"], row["channel"], row["ticket_status"], row["ticket_type"], datetime.fromisoformat(row["open_time"]) if row["open_time"] else None, datetime.fromisoformat(row["close_time"]) if row["close_time"] else None)
+        return Ticket(row["guild"], row["user"], row["channel"], row["ticket_status"], row["ticket_type"], datetime.fromisoformat(row["open_time"]) if row["open_time"] else None, datetime.fromisoformat(row["close_time"]) if row["close_time"] else None) if row else None
     
     @staticmethod
     async def findByGuildId(guildId) -> list["Ticket"]:
