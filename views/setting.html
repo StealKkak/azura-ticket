@@ -36,10 +36,12 @@
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">티켓 대화목록</h2>
 
-                <div class="input-group mb-3">
-                    <input type="text" id="searchInput" class="form-control" placeholder="유저명으로 검색" />
-                    <button id="searchButton" class="btn btn-primary">검색</button>
-                </div>
+                <form id="searchForm">
+                    <div class="input-group mb-3">
+                        <input type="text" id="searchInput" class="form-control" placeholder="유저명으로 검색" />
+                        <button id="searchButton" type="submit" class="btn btn-primary">검색</button>
+                    </div>
+                </form>
 
                 <table class="table table-bordered table-hover text-center align-middle">
                     <thead class="table-light">

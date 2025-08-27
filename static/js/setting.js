@@ -25,11 +25,15 @@ const ticketCategorySelect = document.getElementById("ticketCategorySelect");
 const closedTicketCategorySelect = document.getElementById("closedTicketCategorySelect");
 const userCloseCheckbox = document.getElementById("userCloseCheckbox");
 
-let currentPage = 1;
+const searchInput = document.getElementById("searchInput");
+const searchForm = document.getElementById("searchForm");
+
 let currentTickets = [];
 
 containerList = [actionContainer, ticketListContainer, ticketSelectContainer];
 let ticketTypeIndex;
+
+let searchQuery = "";
 
 document.querySelectorAll(".previousButton").forEach(button => {
     button.addEventListener("click", () => {
@@ -49,8 +53,11 @@ document.getElementById("ticketSettingButton").addEventListener("click", async (
 document.getElementById("ticketListButton").addEventListener("click", async () => {
     actionContainer.classList.add("d-none");
     ticketListContainer.classList.remove("d-none");
+    showSpinner();
     const ticketList = await fetchTicketList();
+    renderPagination(ticketList.current_page, ticketList.total_pages);
     renderTickets(ticketList);
+    hideSpinner();
 });
 
 function showSpinner() {
@@ -92,10 +99,9 @@ function renderTicketTypeList(ticketTypeListArray) {
     });
 }
 
-async function fetchTicketList(query = "", page = undefined) {
-    showSpinner();
+async function fetchTicketList(page = 1, query = "") {
     try {
-        let url = `/api/ticket/${guildId}`;
+        let url = `/api/ticket/${guildId}?`;
 
         if (query) {
             url += `&query=${encodeURIComponent(query)}`;
@@ -111,66 +117,55 @@ async function fetchTicketList(query = "", page = undefined) {
         if (!response.ok) {
             throw new Error(data.error || "불러오기 실패");
         }
-        return Array.isArray(data.data) ? data.data : data.data || [];
+        return data;
     } catch (error) {
         alert(error.message);
         return [];
-    } finally {
-        hideSpinner();
     }
 }
 
 function renderTickets(tickets) {
-    const ticketsPerPage = 10;
-    const totalPages = Math.ceil(tickets.length / ticketsPerPage);
-    const start = (currentPage - 1) * ticketsPerPage;
-    const end = start + ticketsPerPage;
-    const pageTickets = tickets.slice(start, end);
-
-    if (tickets.length === 0) {
+    if (tickets.data.length === 0) {
         ticketListBody.innerHTML = `<tr><td colspan="3">검색 결과가 없습니다.</td></tr>`;
-        renderPagination(0, 0);
         return;
     }
 
-    ticketListBody.innerHTML = pageTickets.map(ticket => `
+    ticketListBody.innerHTML = tickets.data.map(ticket => `
         <tr>
             <td>${ticket.username}</td>
             <td>${ticket.close_time}</td>
             <td>
-                <a href="/ticket/${guildId}/${ticket.path}" target="_blank">
+                <a href="/ticket/${guildId}/${ticket.channel_id}" target="_blank">
                     <button class="btn btn-sm btn-outline-primary">보기</button>
                 </a>
             </td>
         </tr>
     `).join("");
-
-    renderPagination(currentPage, totalPages);
 }
 
-function renderPagination(current, totalPages) {
-    if (totalPages === 0) {
+function renderPagination(currentPage, totalPages) {
+    if (totalPages <= 1) {
         pagination.innerHTML = "";
         return;
     }
 
     let html = `
-        <li class="page-item ${current === 1 ? "disabled" : ""}">
-            <button class="page-link" data-page="${current - 1}" aria-label="이전 페이지">
+        <li class="page-item ${currentPage === 1 ? "disabled" : ""}">
+            <button class="page-link" data-page="${currentPage - 1}" aria-label="이전 페이지">
                 <span aria-hidden="true">◀</span>
             </button>
         </li>`;
 
     for (let i = 1; i <= totalPages; i++) {
         html += `
-            <li class="page-item ${i === current ? "active" : ""}" aria-current="${i === current ? "page" : undefined}">
+            <li class="page-item ${i === currentPage ? "active" : ""}" aria-current="${i === currentPage ? "page" : undefined}">
                 <button class="page-link" data-page="${i}">${i}</button>
             </li>`;
     }
 
     html += `
-        <li class="page-item ${current === totalPages ? "disabled" : ""}">
-            <button class="page-link" data-page="${current + 1}" aria-label="다음 페이지">
+        <li class="page-item ${currentPage === totalPages ? "disabled" : ""}">
+            <button class="page-link" data-page="${currentPage + 1}" aria-label="다음 페이지">
                 <span aria-hidden="true">▶</span>
             </button>
         </li>`;
@@ -180,12 +175,11 @@ function renderPagination(current, totalPages) {
     pagination.querySelectorAll("button").forEach(btn => {
         if (!btn.parentElement.classList.contains("disabled")) {
             btn.addEventListener("click", async () => {
-                currentPage = Number(btn.dataset.page);
-                const tickets = await fetchTicketList(currentPage, query);
+                const selectedPage = Number(btn.dataset.page);
+                const tickets = await fetchTicketList(selectedPage, searchQuery);
 
-                currentPage = page;
                 renderTickets(tickets);
-
+                renderPagination(tickets.current_page, tickets.total_pages);
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
         }
@@ -459,4 +453,15 @@ document.getElementById("globalSaveButton").addEventListener("click", async (e) 
         "icon": "success",
         "confirmButtonText": "닫기"
     });
+});
+
+searchForm.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    currentPage = 1;
+    searchQuery = searchInput.value.trim();
+    showSpinner();
+    currentTickets = await fetchTicketList(1, searchQuery);
+    renderPagination(currentTickets.current_page, currentTickets.total_pages);
+    renderTickets(currentTickets);
+    hideSpinner();
 });
