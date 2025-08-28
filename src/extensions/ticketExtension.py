@@ -94,10 +94,6 @@ ticketOverwrite = discord.PermissionOverwrite(
 )
 
 async def createTicket(interaction: discord.Interaction, ticketTypeId, answer1 = None, answer2 = None, answer3 = None):
-    overwrites = {}
-    overwrites[interaction.user] = ticketOverwrite
-    overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
-    
     await interaction.response.send_message(embed=makeEmbed("info", "잠시만 기다려주세요", "티켓을 열고 있습니다..."), ephemeral=True)
 
     ticketType = await TicketType.findById(ticketTypeId)
@@ -114,12 +110,17 @@ async def createTicket(interaction: discord.Interaction, ticketTypeId, answer1 =
             return await interaction.edit_original_response(embed=makeEmbed("error", "오류", "알 수 없는 오류입니다!"))
         
         overwrites = category.overwrites.copy()
-        overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
-        overwrites[interaction.user] = ticketOverwrite
-        for role in ticketType.role:
-            overwrites[discord.Object(role)] = ticketOverwrite
     else:
         category = None
+        overwrites = {}
+
+    guildRoles = await interaction.guild.fetch_roles()
+    overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(read_messages=False)
+    overwrites[interaction.user] = ticketOverwrite
+    for roleId in ticketType.role:
+        role = discord.utils.get(guildRoles, id=roleId)
+        if role:
+            overwrites[role] = ticketOverwrite
 
     if not ticketType.dupTicket:
         openTickets = await Ticket.findOpenTicket(interaction.guild.id, interaction.user.id, ticketType.id)
@@ -398,10 +399,11 @@ class ticketExtension(commands.Cog):
                     if not ticketType:
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "삭제된 티켓 종류이기 때문에 티켓을 다시 열 수 없습니다!"), ephemeral=True)
                     
-                    try:
-                        category = await interaction.guild.fetch_channel(ticketType.ticketCategory)
-                    except discord.NotFound:
-                        return await interaction.response.send_message(embed=makeEmbed("error", "오류", "유효하지 않은 티켓 카테고리 입니다!"))
+                    if ticketType.ticketCategory:
+                        try:
+                            await interaction.channel.edit(category=category)
+                        except discord.NotFound:
+                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "유효하지 않은 티켓 카테고리 입니다!"))
 
                     try:
                         overwrites = {}
@@ -415,7 +417,11 @@ class ticketExtension(commands.Cog):
                         traceback.print_exc()
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "알 수 없는 오류입니다!"), ephemeral=True)
                     
-                    await interaction.channel.edit(category=category)
+                    try:
+                        category = await interaction.guild.fetch_channel(ticketType.ticketCategory)
+                    except:
+                        pass
+
                     ticket.status = "open"
                     await ticket.save()
 

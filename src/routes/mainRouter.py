@@ -4,6 +4,8 @@ from quart import Blueprint, redirect, render_template, session
 
 import services.configService as settings
 
+from services.discordService import isGuildAdmin
+
 router = Blueprint("main", __name__, url_prefix="/")
 
 @router.route("/")
@@ -24,4 +26,12 @@ async def guildList():
 
 @router.route("/dashboard/<parameter>")
 async def dashboard(parameter):
+    username = session.get("username")
+
+    if not username:
+        return redirect("/")
+    
+    if not await isGuildAdmin(parameter, username):
+        return await render_template("error/403.html"), 403
+
     return await render_template("setting.html", serviceName=settings.serviceName)

@@ -66,7 +66,11 @@ class TicketType:
 
     @property
     def role(self):
-        return stringToArray(self.__role)
+        array = stringToArray(self.__role)
+        newArr = []
+        for item in array:
+            newArr.append(int(item))
+        return newArr
     
     @role.setter
     def role(self, value: list=None):

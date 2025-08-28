@@ -1,10 +1,14 @@
 import asyncio
 import json
 import os
+import traceback
 
 from datetime import *
 
 import aiohttp
+import discord
+
+from bot import bot
 
 from services.dbService import *
 
@@ -260,9 +264,24 @@ async def refreshGuildList(userId: str):
 
     return {"success": True, "data": new_guild_list["guilds"]}
 
-async def isGuildAdmin(guild_id, username):
-    guilds = await getUserGuilds(username)
-    if isinstance(guilds, list):
+async def isGuildAdmin(guild_id, username) -> bool:
+    try:
+        guild = await bot.fetch_guild(guild_id)
+    except discord.NotFound:
+        return False
+    except:
+        traceback.print_exc()
         return False
     
-    return any(guild["id"] == guild_id for guild in guilds["data"])
+    try:
+        member = await guild.fetch_member(username)
+    except discord.NotFound:
+        return False
+    except:
+        traceback.print_exc()
+        return False
+    
+    if member.guild_permissions.administrator:
+        return True
+    else:
+        return False
