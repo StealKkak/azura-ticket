@@ -14,7 +14,8 @@ from services.dbService import *
 
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
-redirect_uri = os.getenv("DOMAIN") + "/api/auth/login"
+domain = os.getenv("DOMAIN") 
+redirect_uri = domain + "/api/auth/login"
 
 async def exchangeToken(code):
     url = "https://discord.com/api/oauth2/token"

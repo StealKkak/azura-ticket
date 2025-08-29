@@ -4,6 +4,7 @@ import logging
 import os
 from dotenv import load_dotenv
 from quart import Quart, request, render_template, jsonify
+load_dotenv(override=True)
 
 from routes.index import router
 
@@ -15,8 +16,6 @@ from utils.randomUtil import *
 
 from bot import bot
 import discord
-
-load_dotenv(override=True)
 
 TOKEN = os.getenv("TOKEN")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
