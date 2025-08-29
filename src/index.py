@@ -14,6 +14,7 @@ from services.dbService import *
 from utils.randomUtil import *
 
 from bot import bot
+import discord
 
 load_dotenv(override=True)
 
@@ -50,6 +51,7 @@ async def on_ready():
         except Exception as e:
             print(f"An unexpected error occurred while loading {extension}: {e}")
     await bot.tree.sync()
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Beta 버전입니다!"), status=discord.Status.online)
     print(f"Logged in as {bot.user.name}")
 
 @app.before_serving
