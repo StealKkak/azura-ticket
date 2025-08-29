@@ -4,3 +4,4 @@ aiosqlite==0.21.0
 chat-exporter==2.8.4
 quart==0.20.0
 Hypercorn==0.17.3
+beautifulsoup4==4.13.5
