@@ -8,6 +8,7 @@ router = Blueprint("authApi", __name__, url_prefix="/")
 @router.route("/login", methods=["GET"])
 async def login():
     code = request.args.get("code")
+    state = request.args.get("state")
 
     if not code:
         return redirect("/")
@@ -33,6 +34,9 @@ async def login():
     await closeDB(con, cur)
 
     session["username"] = userId
+
+    if state:
+        return redirect(f"/ticket/{state}")
     return redirect("/")
 
 @router.route("/logout", methods=["GET", "POST"])

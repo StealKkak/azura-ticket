@@ -1,6 +1,6 @@
 import os
 
-from quart import Blueprint, redirect, render_template, session
+from quart import Blueprint, redirect, render_template, session, request
 
 import services.configService as settings
 
@@ -26,7 +26,11 @@ async def login():
     if session.get("login"):
         return redirect("/")
     else:
-        return redirect("/dashboard")
+        url = f"https://discord.com/oauth2/authorize?client_id={clientId}&response_type=code&redirect_uri={domain}%2Fapi%2Fauth%2Flogin&scope=identify+guilds&prompt=none"
+        state = request.args.get("from")
+        if state:
+            url += f"&state={state}"
+        return redirect(url)
     
 @router.route("/terms")
 async def terms():
