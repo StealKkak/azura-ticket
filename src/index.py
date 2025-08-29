@@ -21,7 +21,6 @@ TOKEN = os.getenv("TOKEN")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 
 app = Quart(__name__, template_folder="../views", static_folder="../static")
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.secret_key = os.getenv("SESSION_SECRETS", randomString(20))
 
 @app.errorhandler(404)
