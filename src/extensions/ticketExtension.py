@@ -222,7 +222,7 @@ async def isRegisterdGuild(guildId):
     return bool(exists)
 
 async def sendUnregisterdGuildError(interaction):
-    await interaction.response.send_message(embed=makeEmbed("error", "오류", "등록되지 않은 서버입니다!"), ephemeral=True)
+    await interaction.response.send_message(embed=makeEmbed("error", "오류", "등록되지 않은 서버입니다! /등록 을 입력해주세요."), ephemeral=True)
 
 class ticketExtension(commands.Cog):
     def __init__(self, bot: commands.Bot):
