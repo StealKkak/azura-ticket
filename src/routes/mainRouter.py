@@ -8,19 +8,34 @@ from services.discordService import isGuildAdmin
 
 router = Blueprint("main", __name__, url_prefix="/")
 
+clientId = os.getenv("CLIENT_ID")
+domain = os.getenv("DOMAIN")
+serviceName = settings.serviceName
+
 @router.route("/")
 async def index():
-    return redirect("/dashboard")
+    return await render_template("index.html", serviceName=serviceName, clientId=clientId, login=session.get("username"))
 
 @router.route("/logout")
 async def logout():
     session.clear()
     return redirect("/")
 
+@router.route("/login")
+async def login():
+    if session.get("login"):
+        return redirect("/")
+    else:
+        return redirect("/dashboard")
+    
+@router.route("/terms")
+async def terms():
+    return redirect("https://azura.cfx.kr/terms")
+
 @router.route("/dashboard")
 async def guildList():
     if not session.get("username"):
-        return redirect(f"https://discord.com/oauth2/authorize?client_id={os.getenv("CLIENT_ID")}&response_type=code&redirect_uri={os.getenv("DOMAIN")}%2Fapi%2Fauth%2Flogin&scope=identify+guilds&prompt=none")
+        return redirect(f"https://discord.com/oauth2/authorize?client_id={clientId}&response_type=code&redirect_uri={domain}%2Fapi%2Fauth%2Flogin&scope=identify+guilds&prompt=none")
     else:
         return await render_template("dashboard.html", serviceName=settings.serviceName, username=session["username"])
 
