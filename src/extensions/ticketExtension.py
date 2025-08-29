@@ -12,8 +12,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-import chat_exporter
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+import azura_chat_exporter
 
 from bs4 import BeautifulSoup
 
@@ -170,7 +170,7 @@ async def transcriptTicket(interaction: discord.Interaction):
             else:
                 print(f"Skipped {attachment.filename}, file too large ({attachment.size} bytes)")
 
-    transcript = await chat_exporter.export(interaction.channel)
+    transcript = await azura_chat_exporter.export(interaction.channel)
     transcript = transcript.replace(
         "https://media.discordapp.net/attachments",
         f"{domain}/static/attachments/{interaction.guild.id}"
@@ -373,6 +373,8 @@ class ticketExtension(commands.Cog):
                             await interaction.channel.set_permissions(member, overwrite=discord.PermissionOverwrite(read_messages=False))
                         except discord.NotFound:
                             pass
+                        
+                        await interaction.response.defer()
 
                         try:
                             category = await interaction.guild.fetch_channel(ticketType.closedTicketCategory)
@@ -385,7 +387,7 @@ class ticketExtension(commands.Cog):
                         if category:
                             await interaction.channel.edit(category=category)
 
-                        return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓이 닫혔습니다!"), view=closedButton())
+                        return await interaction.followup.send(embed=makeEmbed("info", "성공", "티켓이 닫혔습니다!"), view=closedButton())
                     except:
                         traceback.print_exc()
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "티켓을 닫을 수 없습니다!"), ephemeral=True)
@@ -453,7 +455,8 @@ class ticketExtension(commands.Cog):
                                     user = await interaction.guild.fetch_member(ticket.user)
                                     embed = makeEmbed("info", setting.serviceName, "티켓이 닫혔습니다!")
                                     embed.add_field(name="닫은 사람", value=interaction.user.mention)
-                                    embed.set_author(name=interaction.guild.name, icon_url=interaction.guild.icon.url)
+                                    icon_url = interaction.guild.icon.url if interaction.guild.icon else None
+                                    embed.set_author(name=interaction.guild.name, icon_url=None)
                                     await user.send(embed=embed, view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.url, label="대화내옹 보기", url=f"{domain}/ticket/{interaction.guild.id}/{interaction.channel.id}")))
                                 except discord.NotFound:
                                     pass

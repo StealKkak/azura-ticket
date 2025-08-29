@@ -58,4 +58,5 @@ async def startUp():
     await initDB()
     asyncio.create_task(bot.start(TOKEN))
 
-app.run("0.0.0.0", os.getenv("PORT"), True)
+if __name__ == "__main__":
+    app.run("0.0.0.0", os.getenv("PORT"), True)

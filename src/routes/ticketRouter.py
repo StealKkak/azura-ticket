@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from quart import Blueprint, redirect, render_template, session, send_from_directory, abort
 
@@ -9,8 +10,8 @@ from models.ticketModel import Ticket
 
 router = Blueprint("ticket", __name__, url_prefix="/")
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-TRANSCRIPTS_DIR = os.path.join(BASE_DIR, "transcripts")
+BASE_DIR = Path(__file__).resolve().parents[2]
+TRANSCRIPTS_DIR = BASE_DIR / "transcripts"
 
 @router.route("/<guildId>/<channelId>", methods=["GET"])
 async def showTranscript(guildId, channelId):
@@ -29,7 +30,8 @@ async def showTranscript(guildId, channelId):
     if not int(username) == ticket.user and not await isGuildAdmin(guildId, username):
         return await render_template("error/403.html"), 403
     
-    file_path = os.path.join(TRANSCRIPTS_DIR, str(guildId), f"{channelId}.html")
-    if not os.path.exists(file_path):
+    file_path = TRANSCRIPTS_DIR / str(guildId) / f"{channelId}.html"
+    if not os.path.exists(file_path):\
         abort(404)
-    return await send_from_directory(TRANSCRIPTS_DIR, os.path.join(str(guildId), f"{channelId}.html"))
+    print("finded ticket")
+    return await send_from_directory(file_path.parent, file_path.name)
