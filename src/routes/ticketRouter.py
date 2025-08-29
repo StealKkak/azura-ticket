@@ -33,5 +33,4 @@ async def showTranscript(guildId, channelId):
     file_path = TRANSCRIPTS_DIR / str(guildId) / f"{channelId}.html"
     if not os.path.exists(file_path):\
         abort(404)
-    print("finded ticket")
     return await send_from_directory(file_path.parent, file_path.name)

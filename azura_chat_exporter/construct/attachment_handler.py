@@ -6,7 +6,7 @@ import urllib.parse
 
 
 import aiohttp
-from chat_exporter.ext.discord_import import discord
+from azura_chat_exporter.ext.discord_import import discord
 
 
 class AttachmentHandler:

@@ -2,9 +2,9 @@ import datetime
 import io
 from typing import List, Optional
 
-from chat_exporter.construct.transcript import Transcript
-from chat_exporter.ext.discord_import import discord
-from chat_exporter.construct.attachment_handler import AttachmentHandler, AttachmentToLocalFileHostHandler, AttachmentToDiscordChannelHandler
+from azura_chat_exporter.construct.transcript import Transcript
+from azura_chat_exporter.ext.discord_import import discord
+from azura_chat_exporter.construct.attachment_handler import AttachmentHandler, AttachmentToLocalFileHostHandler, AttachmentToDiscordChannelHandler
 
 
 async def quick_export(

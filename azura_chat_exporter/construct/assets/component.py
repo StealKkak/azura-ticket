@@ -1,7 +1,7 @@
-from chat_exporter.ext.discord_import import discord
+from azura_chat_exporter.ext.discord_import import discord
 
-from chat_exporter.ext.discord_utils import DiscordUtils
-from chat_exporter.ext.html_generator import (
+from azura_chat_exporter.ext.discord_utils import DiscordUtils
+from azura_chat_exporter.ext.html_generator import (
     fill_out,
     component_button,
     component_menu,

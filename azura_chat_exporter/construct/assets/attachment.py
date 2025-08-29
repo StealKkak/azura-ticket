@@ -1,7 +1,7 @@
 import math
 
-from chat_exporter.ext.discord_utils import DiscordUtils
-from chat_exporter.ext.html_generator import (
+from azura_chat_exporter.ext.discord_utils import DiscordUtils
+from azura_chat_exporter.ext.html_generator import (
     fill_out,
     img_attachment,
     msg_attachment,

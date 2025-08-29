@@ -72,7 +72,7 @@ async def delClosingTicket(channelId):
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 async def getAttachDir(guildId, channelId, attachId):
-    path = os.path.join(BASE_DIR, "static", "attach", str(guildId), str(channelId), str(attachId))
+    path = os.path.join(BASE_DIR, "static", "attachments", str(guildId), str(channelId), str(attachId))
     await aiofiles.os.makedirs(path, exist_ok=True)
     return path
 

@@ -7,14 +7,14 @@ import aiohttp
 from pytz import timezone
 from datetime import timedelta
 
-from chat_exporter.construct.attachment_handler import AttachmentHandler
-from chat_exporter.ext.discord_import import discord
+from azura_chat_exporter.construct.attachment_handler import AttachmentHandler
+from azura_chat_exporter.ext.discord_import import discord
 
-from chat_exporter.construct.assets import Attachment, Component, Embed, Reaction
-from chat_exporter.ext.discord_utils import DiscordUtils
-from chat_exporter.ext.discriminator import discriminator
-from chat_exporter.ext.cache import cache
-from chat_exporter.ext.html_generator import (
+from azura_chat_exporter.construct.assets import Attachment, Component, Embed, Reaction
+from azura_chat_exporter.ext.discord_utils import DiscordUtils
+from azura_chat_exporter.ext.discriminator import discriminator
+from azura_chat_exporter.ext.cache import cache
+from azura_chat_exporter.ext.html_generator import (
     fill_out,
     bot_tag,
     bot_tag_verified,

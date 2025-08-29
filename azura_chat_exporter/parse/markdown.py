@@ -1,6 +1,6 @@
 import html
 import re
-from chat_exporter.ext.emoji_convert import convert_emoji
+from azura_chat_exporter.ext.emoji_convert import convert_emoji
 
 
 class ParseMarkdown:

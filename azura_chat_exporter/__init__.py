@@ -1,4 +1,4 @@
-from chat_exporter.chat_exporter import (
+from azura_chat_exporter.azura_chat_exporter import (
     export,
     raw_export,
     quick_export,

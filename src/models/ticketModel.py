@@ -107,7 +107,7 @@ class Ticket():
         result = []
 
         con, cur = await loadDB()
-        await cur.execute("SELECT * FROM tickets WHERE guild = ? ORDER BY id ASC", (guildId,))
+        await cur.execute("SELECT * FROM tickets WHERE guild = ? ORDER BY id DESC", (guildId,))
         rows = await cur.fetchall()
         await closeDB(con, cur)
 

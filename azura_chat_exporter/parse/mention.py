@@ -5,8 +5,8 @@ import pytz
 import datetime
 import time
 
-from chat_exporter.ext.discord_import import discord
-from chat_exporter.parse.markdown import ParseMarkdown
+from azura_chat_exporter.ext.discord_import import discord
+from azura_chat_exporter.parse.markdown import ParseMarkdown
 bot: Optional[discord.Client] = None
 
 
