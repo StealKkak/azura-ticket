@@ -2,7 +2,10 @@ import asyncio
 import logging
 
 import os
+
 from dotenv import load_dotenv
+from hypercorn.config import Config
+from hypercorn.asyncio import serve
 from quart import Quart, request, render_template, jsonify
 load_dotenv(override=True)
 
@@ -58,5 +61,8 @@ async def startUp():
     await initDB()
     asyncio.create_task(bot.start(TOKEN))
 
-if __name__ == "__main__":
-    app.run("0.0.0.0", os.getenv("PORT"), True)
+
+config = Config()
+config.bind = ["127.0.0.1:4554"]
+
+asyncio.run(serve(app, config))
