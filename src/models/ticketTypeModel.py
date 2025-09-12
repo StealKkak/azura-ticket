@@ -147,7 +147,7 @@ class TicketType:
         return TicketType(row["guild"], row["name"], bool(row["user_close"]), row["dup_ticket"], stringToArray(row["role"]), row["survey1"], row["survey2"], row["survey3"], row["ticket_category"], row["closed_ticket_category"], row["id"])
     
     @staticmethod
-    async def findByGuildId(guildId)-> list["TicketType"]:
+    async def findByGuildId(guildId) -> list["TicketType"]:
         result = []
 
         con, cur = await loadDB()

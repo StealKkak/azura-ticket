@@ -214,16 +214,6 @@ class closedButton(discord.ui.View):
         self.add_item(discord.ui.Button(label="다시 열기", style=discord.ButtonStyle.blurple, custom_id="TICKET_REOPEN"))
         self.add_item(discord.ui.Button(label="티켓 삭제", style=discord.ButtonStyle.danger, custom_id="TICKET_DELETE"))
 
-async def isRegisterdGuild(guildId):
-    con, cur = await loadDB()
-    await cur.execute("SELECT * FROM guilds WHERE id = ?", (guildId,))
-    exists = await cur.fetchone()
-    await closeDB(con, cur)
-    return bool(exists)
-
-async def sendUnregisterdGuildError(interaction):
-    await interaction.response.send_message(embed=makeEmbed("error", "오류", "등록되지 않은 서버입니다! /등록 을 입력해주세요."), ephemeral=True)
-
 class ticketExtension(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
@@ -231,40 +221,13 @@ class ticketExtension(commands.Cog):
 
     def cog_unload(self):
         self.cleanUpTask.cancel()
-
-    @app_commands.command(name="등록", description="이 서버를 등록합니다!")
-    @app_commands.guild_install()
-    @app_commands.guild_only()
-    @app_commands.default_permissions(administrator=True)
-    async def register(self, interaction: discord.Interaction):
-        if await isRegisterdGuild(interaction.guild.id):
-            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "이미 등록된 서버입니다!"), ephemeral=True)
-        
-        con, cur = await loadDB()
-        await cur.execute("SELECT * FROM guilds WHERE id = ?", (interaction.guild.id,))
-        exists = await cur.fetchone()
-        await cur.execute("INSERT INTO guilds (id) VALUES (?)", (interaction.guild.id,))
-        await con.commit()
-        await closeDB(con, cur)
-        return await interaction.response.send_message(embed=makeEmbed("info", "등록 성공", "성공적으로 서버를 등록했습니다!"), ephemeral=True)
     
     @app_commands.command(name="티켓", description="티켓 버튼을 전송합니다!")
     @app_commands.guild_install()
     @app_commands.guild_only()
     @app_commands.default_permissions(administrator=True)
-    async def sendTicketButton(self, interaction: discord.Interaction):
-        if not await isRegisterdGuild(interaction.guild.id):
-            return await sendUnregisterdGuildError(interaction)
-        
-        con, cur = await loadDB()
-        await cur.execute("SELECT * FROM guilds WHERE id = ?", (interaction.guild.id,))
-        row = await cur.fetchone()
-        await closeDB(con, cur)
-
-        title = row["title"]
-        description = row["description"]
-        buttonLabel = row["button_label"]
-        embed = makeEmbed("info", title, description)
+    async def sendTicketButton(self, interaction: discord.Interaction, 제목:str = "티켓 열기", 내용:str = "아래 버튼을 눌러 문의를 위한 개인 채널을 생성하세요!", 버튼라벨:str = "💌ㅣ티켓 열기"):
+        embed = makeEmbed("info", 제목, 내용)
 
         tickets = await TicketType.findByGuildId(interaction.guild.id)
         if len(tickets) <= 1:
@@ -273,7 +236,7 @@ class ticketExtension(commands.Cog):
             else:
                 ticket = tickets[0]
 
-            await interaction.channel.send(embed=embed, view=CreateTicketButton(buttonLabel, [ticket]))
+            await interaction.channel.send(embed=embed, view=CreateTicketButton(버튼라벨, [ticket]))
             return await interaction.response.send_message(embed=makeEmbed("info", "성공", "티켓 안내 메시지를 전송하였습니다!"), ephemeral=True)
         else:
             view = discord.ui.View(timeout=120)
@@ -284,7 +247,7 @@ class ticketExtension(commands.Cog):
             async def callback(mInteraction: discord.Interaction):
                 values = select.values
                 selectedTicketTypes = [ticket for ticket in tickets if str(ticket.id) in values]
-                await interaction.channel.send(embed=embed, view=CreateTicketButton(buttonLabel, selectedTicketTypes))
+                await interaction.channel.send(embed=embed, view=CreateTicketButton(버튼라벨, selectedTicketTypes))
                 return await interaction.edit_original_response(embed=makeEmbed("info", "성공", "티켓 안내 메시지를 전송하였습니다!"), view=None)
             
             select.callback = callback
