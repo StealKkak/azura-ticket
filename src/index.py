@@ -47,7 +47,7 @@ app.register_blueprint(router)
 
 @bot.event
 async def on_ready():
-    extensions = ["ticketExtension"]
+    extensions = ["ticketExtension", "adminExtension"]
     for extension in extensions:
         try:
             await bot.load_extension(f"extensions.{extension}")
