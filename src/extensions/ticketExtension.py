@@ -221,6 +221,13 @@ class ticketExtension(commands.Cog):
 
     def cog_unload(self):
         self.cleanUpTask.cancel()
+
+    @app_commands.command(name="설정", description="티켓을 설정합니다!")
+    @app_commands.guild_install()
+    @app_commands.guild_only()
+    @app_commands.default_permissions(administrator=True)
+    async def setting(self, interaction: discord.Interaction):
+        return await interaction.response.send_message(f"{domain}/dashboard/{interaction.guild.id}", ephemeral=True)
     
     @app_commands.command(name="티켓", description="티켓 버튼을 전송합니다!")
     @app_commands.guild_install()
