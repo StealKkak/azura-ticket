@@ -22,6 +22,7 @@ import discord
 
 TOKEN = os.getenv("TOKEN")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+PORT = os.getenv("PORT")
 
 app = Quart(__name__, template_folder="../views", static_folder="../static")
 app.secret_key = os.getenv("SESSION_SECRETS", randomString(20))
@@ -63,6 +64,6 @@ async def startUp():
 
 
 config = Config()
-config.bind = ["127.0.0.1:4554"]
+config.bind = [f"127.0.0.1:{PORT}"]
 
 asyncio.run(serve(app, config))
