@@ -197,6 +197,19 @@ def filterAdminGuilds(guilds):
             adminGuilds.append(guild)
     return adminGuilds
 
+async def filterBotGuilds(guilds):
+    result = []
+
+    botGuildSet = set()
+    async for guild in bot.fetch_guilds(limit=None):
+        botGuildSet.add(str(guild.id))
+
+    for guild in guilds:
+        if str(guild.get("id")) in botGuildSet:
+            result.append(guild)
+
+    return result
+
 async def getUserGuilds(userId):
     con, cur = await loadDB()
     await cur.execute("SELECT * FROM users WHERE id = ?", (userId,))
@@ -218,10 +231,12 @@ async def getUserGuilds(userId):
         if not guilds:
             return {"success": False, "error": {"code": 500, "message": "Failed to fetch guilds"}}
 
-        filtered_guilds = filterAdminGuilds(guilds)
+        filteredAdminGuilds = filterAdminGuilds(guilds)
+        filteredGuilds = await filterBotGuilds(filteredAdminGuilds)
+
         new_guild_list = {
             "last_update": datetime.now().isoformat(),
-            "guilds": [{"id": g["id"], "name": g["name"], "icon": g["icon"]} for g in filtered_guilds],
+            "guilds": [{"id": g["id"], "name": g["name"], "icon": g["icon"]} for g in filteredGuilds],
         }
 
         con, cur = await loadDB()
@@ -252,7 +267,9 @@ async def refreshGuildList(userId: str):
     if not guilds:
         return {"success": False, "error": {"code": 500, "message": "Failed to fetch guilds"}}
 
-    filteredGuilds = filterAdminGuilds(guilds)
+    filteredAdminGuilds = filterAdminGuilds(guilds)
+    filteredGuilds = await filterBotGuilds(filteredAdminGuilds)
+
     new_guild_list = {
         "last_update": datetime.now().isoformat(),
         "guilds": [{"id": g["id"], "name": g["name"], "icon": g["icon"]} for g in filteredGuilds],
