@@ -427,7 +427,7 @@ class ticketExtension(commands.Cog):
                                     embed.add_field(name="닫은 사람", value=interaction.user.mention)
                                     icon_url = interaction.guild.icon.url if interaction.guild.icon else None
                                     embed.set_author(name=interaction.guild.name, icon_url=None)
-                                    await user.send(embed=embed, view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.url, label="대화내옹 보기", url=f"{domain}/ticket/{interaction.guild.id}/{interaction.channel.id}")))
+                                    await user.send(embed=embed, view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.url, label="대화내용 보기", url=f"{domain}/ticket/{interaction.guild.id}/{interaction.channel.id}")))
                                 except discord.NotFound:
                                     pass
                                 except:
