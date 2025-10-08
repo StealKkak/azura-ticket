@@ -311,7 +311,8 @@ async def getUsername(id) -> str:
 
     if not exists or datetime.fromisoformat(exists["expires_at"]) > datetime.now():
         try:
-            username = (await bot.fetch_user(id)).name
+            user = bot.get_user(id) or await bot.fetch_user(id)
+            username = user.name
         except discord.NotFound:
             await closeDB(con, cur)
             return exists["username"] if exists else id
