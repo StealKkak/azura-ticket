@@ -200,7 +200,7 @@ class CreateTicketButton(discord.ui.View):
             return
         
         self.add_item(discord.ui.Select(custom_id="TICKET_OPEN", placeholder=buttonLabel, min_values=1, max_values=1, options=[
-            discord.SelectOption(label=ticketType.name, value=ticketType.id) for ticketType in ticketTypes
+            discord.SelectOption(label=ticketType.name, value=ticketType.id, description=ticketType.description) for ticketType in ticketTypes
         ]))
 
 class CloseTicketButton(discord.ui.View):
