@@ -25,7 +25,7 @@ async def showTranscript(guildId, channelId):
     
     username = session.get("username")
     if not username:
-        return redirect(f"/login?from={guildId}/{channelId}")
+        return redirect(f"/login?from=/ticket/{guildId}/{channelId}")
     
     if not int(username) == ticket.user and not await isGuildAdmin(guildId, username):
         return await render_template("error/403.html"), 403

@@ -23,7 +23,7 @@ async def logout():
 
 @router.route("/login")
 async def login():
-    if session.get("login"):
+    if session.get("username"):
         return redirect("/")
     else:
         url = f"https://discord.com/oauth2/authorize?client_id={clientId}&response_type=code&redirect_uri={domain}%2Fapi%2Fauth%2Flogin&scope=identify+guilds&prompt=none"
@@ -48,7 +48,7 @@ async def dashboard(parameter):
     username = session.get("username")
 
     if not username:
-        return redirect("/")
+        return redirect(f"/login?from=/dashboard/{parameter}")
     
     if not await isGuildAdmin(parameter, username):
         return await render_template("error/403.html"), 403

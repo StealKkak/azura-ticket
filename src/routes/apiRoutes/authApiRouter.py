@@ -36,7 +36,7 @@ async def login():
     session["username"] = userId
 
     if state:
-        return redirect(f"/ticket/{state}")
+        return redirect(f"{state}")
     return redirect("/")
 
 @router.route("/logout", methods=["GET", "POST"])
