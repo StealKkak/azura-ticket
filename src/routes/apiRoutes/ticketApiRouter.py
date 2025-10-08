@@ -36,7 +36,7 @@ async def getTicketList(guildId):
         return jsonify({"error": "page must be 1 or greater!"}), 400
 
     if query:
-        filteredTickets = [ticket for ticket in filteredTickets if query == ticket.user or  query in str(userList.get(ticket.user))]
+        filteredTickets = [ticket for ticket in filteredTickets if query == ticket.user or query in str(await getUsername(ticket.user))]
 
     start = (page - 1) * 10
     end = start + 10
