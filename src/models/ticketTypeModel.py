@@ -110,6 +110,9 @@ class TicketType:
         self.__closedTicketCategory = value
 
     async def save(self):
+        if not self.__name:
+            raise NameError("name is required!")
+        
         con, cur = await loadDB()
         await cur.execute("SELECT * FROM ticket_settings WHERE guild = ? AND name = ? AND id != ?", (self.__guild, self.__name, self.__id))
         exists = await cur.fetchone()
@@ -137,7 +140,7 @@ class TicketType:
             await closeDB(con, cur)
             raise ValueError("A record with the same guild and name already exists.")
         
-        await cur.execute("INSERT INTO ticket_settings (guild, name, description, survey1, survey2, survey3, role, user_close, dup_ticket, ticket_category, closed_ticket_category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (guild, name, description, survey1, survey2, survey3, arrayToString(role), 1 if userClose else 0, 1 if dupTicket else 0, ticketCategory, closedTicketCategory))
+        await cur.execute("INSERT INTO ticket_settings (guild, name, description, survey1, survey2, survey3, role, user_close, dup_ticket, ticket_category, closed_ticket_category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (guild, name, description, survey1, survey2, survey3, arrayToString(role), 1 if userClose else 0, 1 if dupTicket else 0, ticketCategory, closedTicketCategory))
         await con.commit()
         id = cur.lastrowid
         await closeDB(con, cur)

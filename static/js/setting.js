@@ -12,6 +12,7 @@ const guildId = pathParts[pathParts.length - 1];
 
 const dupTicketCheckbox = document.getElementById("dupTicketCheckbox");
 const ticketNameInput = document.getElementById("ticketName");
+const ticketDescriptInput = document.getElementById("ticketDescription");
 const roleListDropdown = document.getElementById("roleListDropdown");
 const survey1Checkbox = document.getElementById("surveyCheck1");
 const survey2Checkbox = document.getElementById("surveyCheck2");
@@ -305,6 +306,8 @@ document.getElementById("ticketTypeSelect").addEventListener("change", async (e)
         }
 
         ticketNameInput.value = data.data.name;
+        ticketDescriptInput.value = data.data.description;
+
         dupTicketCheckbox.checked = data.data.dup_ticket;
 
         survey1Checkbox.checked = Boolean(data.data.survey1);
@@ -400,6 +403,8 @@ document.getElementById("globalDeleteButton").addEventListener("click", async (e
 
 document.getElementById("globalSaveButton").addEventListener("click", async (e) => {
     const ticketName = ticketNameInput.value;
+    const ticketDescription = ticketDescriptInput.value;
+
     const dupTicket = dupTicketCheckbox.checked;
 
     const survey1 = survey1Input.value;
@@ -425,6 +430,7 @@ document.getElementById("globalSaveButton").addEventListener("click", async (e) 
         }, 
         body: JSON.stringify({
             name: ticketName,
+            description: ticketDescription,
             dup_ticket: dupTicket,
             survey1: survey1Checked ? survey1 : null,
             survey2: survey2Checked ? survey2 : null,

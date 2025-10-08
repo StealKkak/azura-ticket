@@ -48,12 +48,16 @@ async def getTicketSettings(guildId):
     elif request.method == "PUT":
         body = await request.get_json()
         name = body.get("name")
+        description = body.get("description")
+
+        if not name:
+            return jsonify({"error": "티켓 이름을 입력해주세요!"})
 
         if not name:
             return jsonify({"error": "Missing required paramter: name"}), 400
         
         try:
-            await TicketType.createInstance(guildId, name, True, 0, [])
+            await TicketType.createInstance(guildId, name, description, True, 0, [])
             return jsonify({"message": "success"}), 201
         except ValueError:
             return jsonify({"error": "이미 존재하는 티켓 이름입니다!"}), 400
@@ -85,6 +89,7 @@ async def handelTicketSetting(guildId, index):
     if request.method == "GET":
         return jsonify({"data": {
             "name": ticket.name,
+            "description": ticket.description,
             "survey1": ticket.survey1,
             "survey2": ticket.survey2,
             "survey3": ticket.survey3,
@@ -108,6 +113,7 @@ async def handelTicketSetting(guildId, index):
 
         try:
             ticket.name = body.get("name")
+            ticket.description = body.get("description")
             ticket.survey1 = body.get("survey1")
             ticket.survey2 = body.get("survey2")
             ticket.survey3 = body.get("survey3")
@@ -119,6 +125,8 @@ async def handelTicketSetting(guildId, index):
             await ticket.save()
         except ValueError:
             return jsonify({"error": "티켓 이름은 중복될 수 없습니다!"}), 400
+        except NameError:
+            return jsonify({"error": "티켓 이름을 입력해주세요!"}), 400
         except:
             traceback.print_exc()
             return jsonify({"error": "알 수 없는 서버 오류입니다!"}), 500
