@@ -303,3 +303,23 @@ async def isGuildAdmin(guild_id, username) -> bool:
         return True
     else:
         return False
+    
+async def getUsername(id) -> str:
+    con, cur = await loadDB()
+    await cur.execute("SELECT * FROM usernames WHERE id = ?", (id,))
+    exists = await cur.fetchone()
+
+    if not exists or datetime.fromisoformat(exists["expires_at"]) > datetime.now():
+        try:
+            username = (await bot.fetch_user(id)).name
+        except discord.NotFound:
+            await closeDB(con, cur)
+            return exists["username"] if exists else id
+
+        await cur.execute("INSERT OR REPLACE INTO usernames VALUES (?, ?, ?)", (id, username, datetime.now() + timedelta(minutes=5)))
+        await con.commit()
+        await closeDB(con, cur)
+        return username
+    else:
+        await closeDB(con, cur)
+        return exists["username"]

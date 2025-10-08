@@ -35,28 +35,6 @@ async def getTicketList(guildId):
     if page < 1:
         return jsonify({"error": "page must be 1 or greater!"}), 400
 
-    try:
-        guild = await bot.fetch_guild(guildId)
-        userList = {user.id : user.name async for user in guild.fetch_members(limit=None)}
-
-        con, cur = await loadDB()
-        users = list(userList.items())
-        await cur.executemany("INSERT OR REPLACE INTO usernames VALUES (?, ?)", users)
-        await con.commit()
-
-        await cur.execute("SELECT * FROM usernames")
-        await closeDB(con, cur)
-    except:
-        traceback.print_exc()
-
-    con, cur = await loadDB()
-    for ticket in filteredTickets:
-        if not userList.get(ticket.user):
-            await cur.execute("SELECT * FROM usernames WHERE id = ?", (int(ticket.user),))
-            row = await cur.fetchone()
-            userList[int(row["id"])] = row["name"]
-    await closeDB(con, cur)
-
     if query:
         filteredTickets = [ticket for ticket in filteredTickets if query == ticket.user or  query in str(userList.get(ticket.user))]
 
@@ -67,7 +45,7 @@ async def getTicketList(guildId):
 
     return jsonify({"data": [{
         "guild_id": str(ticket.guild),
-        "username": str(userList.get(ticket.user, ticket.user)),
+        "username": str(await getUsername(ticket.user)),
         "channel_id": str(ticket.channel),
         "ticket_status": ticket.status,
         "open_time": ticket.openTime,
