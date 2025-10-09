@@ -118,6 +118,7 @@ async function fetchTicketList(page = 1, query = "") {
         if (!response.ok) {
             throw new Error(data.error || "불러오기 실패");
         }
+        
         return data;
     } catch (error) {
         alert(error.message);

@@ -23,6 +23,10 @@ async def getTicketList(guildId):
             return jsonify({"error": "You don't have permission to perform this action"}), 403
         
     tickets = await Ticket.findByGuildId(guildId)
+
+    if not tickets:
+        return jsonify({"status": "success", "data": []})
+
     query = request.args.get("query", "").lower()
     pageStr = request.args.get("page", 1)
     filteredTickets = [ticket for ticket in tickets if ticket.status == "saved"]
