@@ -239,7 +239,7 @@ class ticketExtension(commands.Cog):
         tickets = await TicketType.findByGuildId(interaction.guild.id)
         if len(tickets) <= 1:
             if len(tickets) == 0:
-                ticket = await TicketType.createInstance(interaction.guild.id, "기본 티켓", True, 1, None)
+                ticket = await TicketType.createInstance(interaction.guild.id, "기본 티켓", None, True, True, None)
             else:
                 ticket = tickets[0]
 
