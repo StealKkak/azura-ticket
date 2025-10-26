@@ -37,7 +37,7 @@ async def login():
 
     if state:
         return redirect(f"{state}")
-    return redirect("/")
+    return redirect("/dashboard")
 
 @router.route("/logout", methods=["GET", "POST"])
 async def logout():
