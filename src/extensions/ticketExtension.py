@@ -282,7 +282,7 @@ class ticketExtension(commands.Cog):
                     if not ticketType:
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "현재 열려고 하는 티켓의 설정이 삭제되었습니다! 관리자에게 문의해주세요."), ephemeral=True)
                     
-                    if ticketType.survey1 or ticketType.survey2 or ticketType.survey3:
+                    if ticketType.survey1 or ticketType.survey2 or ticketType.survey3: #설문조사가 하나 이상 존재하는 경우
                         modal = discord.ui.Modal(title="양식을 작성해주세요!", timeout=120)
         
                         if ticketType.survey1:
@@ -373,9 +373,12 @@ class ticketExtension(commands.Cog):
                     
                     if ticketType.ticketCategory:
                         try:
+                            category = await interaction.guild.fetch_channel(ticketType.ticketCategory)
                             await interaction.channel.edit(category=category)
                         except discord.NotFound:
-                            return await interaction.response.send_message(embed=makeEmbed("error", "오류", "유효하지 않은 티켓 카테고리 입니다!"))
+                            pass
+                        except:
+                            traceback.print_exc()
 
                     try:
                         overwrites = {}
@@ -388,11 +391,6 @@ class ticketExtension(commands.Cog):
                     except:
                         traceback.print_exc()
                         return await interaction.response.send_message(embed=makeEmbed("error", "오류", "알 수 없는 오류입니다!"), ephemeral=True)
-                    
-                    try:
-                        category = await interaction.guild.fetch_channel(ticketType.ticketCategory)
-                    except:
-                        pass
 
                     ticket.status = "open"
                     await ticket.save()

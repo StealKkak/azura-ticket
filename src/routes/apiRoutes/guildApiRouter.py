@@ -29,7 +29,7 @@ async def getTicketSettings(guildId):
 
     if request.method == "GET":
         if not tickets:
-            ticket = await TicketType.createInstance(guildId, "기본 티켓", True, 1, None, None, None, None)
+            ticket = await TicketType.createInstance(guildId, "기본 티켓", None, False, False, [])
 
             return jsonify({
                 "data": [
@@ -48,7 +48,6 @@ async def getTicketSettings(guildId):
     elif request.method == "PUT":
         body = await request.get_json()
         name = body.get("name")
-        description = body.get("description")
 
         if not name:
             return jsonify({"error": "티켓 이름을 입력해주세요!"})
@@ -57,7 +56,7 @@ async def getTicketSettings(guildId):
             return jsonify({"error": "Missing required paramter: name"}), 400
         
         try:
-            await TicketType.createInstance(guildId, name, description, True, 0, [])
+            await TicketType.createInstance(guildId, name, None, True, 0, [])
             return jsonify({"message": "success"}), 201
         except ValueError:
             return jsonify({"error": "이미 존재하는 티켓 이름입니다!"}), 400
