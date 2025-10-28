@@ -17,7 +17,7 @@ async def initDB():
     con, cur = await loadDB()
     await cur.execute("CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, guild TEXT, user TEXT, channel TEXT UNIQUE, ticket_status TEXT NOT NULL DEFAULT \"open\", ticket_type INTEGER, open_time DATETIME, close_time DATETIME)")
     await cur.execute("CREATE TABLE IF NOT EXISTS guilds (id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '티켓 열기', description TEXT NOT NULL DEFAULT '아래 버튼을 눌러 문의를 위한 개인 채널을 생성하세요!', button_label TEXT NOT NULL DEFAULT '💌ㅣ티켓 열기')")
-    await cur.execute("CREATE TABLE IF NOT EXISTS ticket_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, guild TEXT, name TEXT, description TEXT, survey1 TEXT, survey2 TEXT, survey3 TEXT, role TEXT, user_close INTEGER NOT NULL DEFAULT 0, dup_ticket INTEGER NOT NULL DEFAULT 0, ticket_category TEXT, closed_ticket_category TEXT)")
+    await cur.execute("CREATE TABLE IF NOT EXISTS ticket_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, guild TEXT, name TEXT, description TEXT, survey1 TEXT, survey2 TEXT, survey3 TEXT, role TEXT, user_close INTEGER NOT NULL DEFAULT 0, dup_ticket INTEGER NOT NULL DEFAULT 0, ticket_category TEXT, closed_ticket_category TEXT, content TEXT, body TEXT)")
     await cur.execute("CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, guilds TEXT, refresh_token TEXT)")
     await cur.execute("CREATE TABLE IF NOT EXISTS usernames (id TEXT PRIMARY KEY, username TEXT, expires_at DATETIME)")
     await con.commit()

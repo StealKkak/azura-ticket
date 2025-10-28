@@ -26,6 +26,10 @@ const ticketCategorySelect = document.getElementById("ticketCategorySelect");
 const closedTicketCategorySelect = document.getElementById("closedTicketCategorySelect");
 const userCloseCheckbox = document.getElementById("userCloseCheckbox");
 
+const setTicketEmbedModal = document.getElementById("setTicketEmbedModal");
+const inputTicketBody = document.getElementById("inputTicketBody");
+const inputTicketEmbed = document.getElementById("inputTicketEmbed");
+
 const searchInput = document.getElementById("searchInput");
 const searchForm = document.getElementById("searchForm");
 
@@ -424,6 +428,9 @@ document.getElementById("globalSaveButton").addEventListener("click", async (e) 
 
     const userClose = userCloseCheckbox.checked;
 
+    const body = inputTicketBody.value;
+    const embed = inputTicketEmbed.value;
+
     const res = await fetch(`/api/guilds/${guildId}/ticket-settings/${ticketTypeIndex}`, {
         method: "POST",
         headers: {
@@ -439,7 +446,9 @@ document.getElementById("globalSaveButton").addEventListener("click", async (e) 
             ticket_category: ticketCategory,
             closed_ticket_category: closedTicketCategory,
             role: roles,
-            user_close: userClose
+            user_close: userClose,
+            body,
+            embed
         })
     });
     data = await res.json();
@@ -472,3 +481,7 @@ searchForm.addEventListener("submit", async (e) => {
     renderTickets(currentTickets);
     hideSpinner();
 });
+
+setTicketEmbedModal.addEventListener("submit", async (e) => {
+    e.preventDefault();
+})

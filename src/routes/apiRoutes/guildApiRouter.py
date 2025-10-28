@@ -96,7 +96,9 @@ async def handelTicketSetting(guildId, index):
             "dup_ticket": bool(ticket.dupTicket),
             "ticket_category": str(ticket.ticketCategory),
             "closed_ticket_category": str(ticket.closedTicketCategory),
-            "user_close": bool(ticket.userClose)
+            "user_close": bool(ticket.userClose),
+            "body": ticket.body,
+            "embed": ticket.embed
         }})
     
     if request.method == "POST":
@@ -121,6 +123,9 @@ async def handelTicketSetting(guildId, index):
             ticket.ticketCategory = body.get("ticket_category")
             ticket.closedTicketCategory = body.get("closed_ticket_category")
             ticket.userClose = bool(body.get("user_close"))
+            ticket.body = body.get("body")
+            ticket.embed = body.get("embed")
+            
             await ticket.save()
         except ValueError:
             return jsonify({"error": "티켓 이름은 중복될 수 없습니다!"}), 400
