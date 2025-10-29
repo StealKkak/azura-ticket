@@ -323,7 +323,10 @@ document.getElementById("ticketTypeSelect").addEventListener("change", async (e)
         survey2Input.value = data.data.survey2;
         survey3Input.value = data.data.survey3;
 
-        userCloseCheckbox.checked = data.data.user_close
+        userCloseCheckbox.checked = data.data.user_close;
+
+        inputTicketBody.value = data.data.body;
+        inputTicketEmbed.value = data.data.embed;
 
         if (Array.from(ticketCategorySelect.options).some(opt => opt.value == data.data.ticket_category)) {
             ticketCategorySelect.value = data.data.ticket_category;
