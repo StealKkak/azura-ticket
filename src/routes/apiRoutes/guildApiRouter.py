@@ -92,7 +92,7 @@ async def handelTicketSetting(guildId, index):
             "survey1": ticket.survey1,
             "survey2": ticket.survey2,
             "survey3": ticket.survey3,
-            "role": ticket.role,
+            "role": [str(role) for role in ticket.role],
             "dup_ticket": bool(ticket.dupTicket),
             "ticket_category": str(ticket.ticketCategory),
             "closed_ticket_category": str(ticket.closedTicketCategory),
