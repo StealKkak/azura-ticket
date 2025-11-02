@@ -151,7 +151,7 @@ async def createTicket(interaction: discord.Interaction, ticketTypeId, answer1 =
     if ticketType.survey3:
         embed.add_field(name=ticketType.survey3, value=answer3, inline=False)
     
-    await ticketChannel.send(content="@everyone" + f"\n{ticketType.body}" if ticketType.body else "", embed=embed, view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.red, label="티켓 닫기", custom_id=f"TICKET_CLOSE_{interaction.user.id}_{ticketTypeId}")))
+    await ticketChannel.send(content="@everyone" + (f"\n{ticketType.body}" if ticketType.body else ""), embed=embed, view=discord.ui.View().add_item(discord.ui.Button(style=discord.ButtonStyle.red, label="티켓 닫기", custom_id=f"TICKET_CLOSE_{interaction.user.id}_{ticketTypeId}")))
     return await interaction.edit_original_response(embed=makeEmbed("info", "성공", f"티켓이 생성되었습니다!"), view=discord.ui.View().add_item(discord.ui.Button(label="티켓으로 가기", style=discord.ButtonStyle.url, url=ticketChannel.jump_url)))
 
 async def transcriptTicket(interaction: discord.Interaction):
