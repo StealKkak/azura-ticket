@@ -1,3 +1,4 @@
+//v2.1
 const serverListEl = document.getElementById('server-list');
 const loadingBar = document.getElementById('loading-bar');
 const refreshButton = document.getElementById('refresh-server');
@@ -45,38 +46,38 @@ function createServerCard(server) {
 
 async function loadServers() {
     try {
-    refreshButton.disabled = true;
-    loadingBar.style.display = 'block';
-    const res = await fetch('/api/user/getserverlist', { method: "POST" });
-    const data = await res.json();
+        refreshButton.disabled = true;
+        loadingBar.style.display = 'block';
+        const res = await fetch('/api/users/me/guilds');
+        const data = await res.json();
 
-    if (!res.ok) {
-        const error = data.error || '서버 목록을 불러오는 중 오류가 발생했습니다';
-        if (error === "Unauthorized") {
-            alert("로그인 후 사용해주세요!");
-            window.location.href = "/";
-            return;
-        } else if (error === "No Data Found") {
-            alert("관리자인 서버가 없습니다.");
-            renderServers([]);
-            return;
-        } else if (error === "Refresh token expired") {
-            alert("리프레시 토큰이 만료되었습니다! 디스코드로 로그인해주세요!");
-            window.location.href = "/logout";
-            return;
-        } else {
-            alert(error);
-            return;
+        if (!res.ok) {
+            const error = data.error || '서버 목록을 불러오는 중 오류가 발생했습니다';
+            if (error === "Unauthorized") {
+                alert("로그인 후 사용해주세요!");
+                window.location.href = "/";
+                return;
+            } else if (error === "No Data Found") {
+                alert("티켓봇을 사용중인 서버 중 관리자인 서버가 없습니다.");
+                renderServers([]);
+                return;
+            } else if (error === "Refresh token expired") {
+                alert("리프레시 토큰이 만료되었습니다! 디스코드로 로그인해주세요!");
+                window.location.href = "/logout";
+                return;
+            } else {
+                alert(error);
+                return;
+            }
         }
-    }
 
-    renderServers(data);
+        renderServers(data.data);
     } catch (err) {
-    console.error('서버 목록 로드 실패:', err);
-    alert('서버 목록을 불러오는 중 오류가 발생했습니다.');
+        console.error('서버 목록 로드 실패:', err);
+        alert('서버 목록을 불러오는 중 오류가 발생했습니다.');
     } finally {
-    refreshButton.disabled = false;
-    loadingBar.style.display = 'none';
+        refreshButton.disabled = false;
+        loadingBar.style.display = 'none';
     }
 }
 
@@ -85,7 +86,7 @@ async function refreshServers() {
     refreshButton.disabled = true;
     loadingBar.style.display = 'block';
 
-    const res = await fetch('/api/user/refreshserverlist', { method: 'POST' });
+    const res = await fetch('/api/users/me/guilds?refresh=true');
     const data = await res.json();
 
     if (!res.ok) {
@@ -95,7 +96,7 @@ async function refreshServers() {
             window.location.href = "/login";
             return;
         } else if (error === "No Data Found") {
-            alert("관리자인 서버가 없습니다.");
+            alert("티켓봇을 사용중인 서버 중 관리자인 서버가 없습니다.");
             renderServers([]);
             return;
         } else if (error === "Refresh token expired") {
@@ -108,23 +109,23 @@ async function refreshServers() {
         }
     }
 
-renderServers(data);
-    } catch (err) {
-        console.error('서버 새로고침 실패:', err);
-        alert('서버 새로고침 중 오류가 발생했습니다.');
-    } finally {
-        refreshButton.disabled = false;
-        loadingBar.style.display = 'none';
-    }
+    renderServers(data.data);
+        } catch (err) {
+            console.error('서버 새로고침 실패:', err);
+            alert('서버 새로고침 중 오류가 발생했습니다.');
+        } finally {
+            refreshButton.disabled = false;
+            loadingBar.style.display = 'none';
+        }
 }
 
-function renderServers(servers) {
+function renderServers(guilds) {
     serverListEl.innerHTML = '';
-    if (servers.length === 0) {
+    if (guilds.length === 0) {
         serverListEl.innerHTML = '<p class="text-center text-muted">서버가 없습니다.</p>';
         return;
     }
-    servers.forEach(server => {
+    guilds.forEach(server => {
         const card = createServerCard(server);
         serverListEl.appendChild(card);
     });

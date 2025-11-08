@@ -1,3 +1,4 @@
+//v2.2
 const actionContainer = document.getElementById("actionContainer");
 const ticketSelectContainer = document.getElementById("ticketSelectContainer");
 const ticketListContainer = document.getElementById("ticketListContainer");
@@ -106,7 +107,7 @@ function renderTicketTypeList(ticketTypeListArray) {
 
 async function fetchTicketList(page = 1, query = "") {
     try {
-        let url = `/api/ticket/${guildId}?`;
+        let url = `/api/tickets/${guildId}?`;
 
         if (query) {
             url += `&query=${encodeURIComponent(query)}`;
@@ -141,7 +142,7 @@ function renderTickets(tickets) {
             <td>${ticket.username}</td>
             <td>${ticket.close_time}</td>
             <td>
-                <a href="/ticket/${guildId}/${ticket.channel_id}" target="_blank">
+                <a href="/tickets/${guildId}/${ticket.channel_id}" target="_blank">
                     <button class="btn btn-sm btn-outline-primary">보기</button>
                 </a>
             </td>

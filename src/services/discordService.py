@@ -158,7 +158,6 @@ async def getUserInfo(access_token):
 
     return None
 
-
 async def fetchUserGuilds(token: str):
     tries = 0
     max_tries = 3
@@ -210,7 +209,7 @@ async def filterBotGuilds(guilds):
 
     return result
 
-async def getUserGuilds(userId):
+async def getUserGuilds(userId, refresh = False):
     con, cur = await loadDB()
     await cur.execute("SELECT * FROM users WHERE id = ?", (userId,))
     user = await cur.fetchone()
@@ -221,7 +220,7 @@ async def getUserGuilds(userId):
 
     if (
         not guildList
-        or datetime.fromisoformat(guildList["last_update"]) + timedelta(minutes=30) < datetime.now()
+        or datetime.fromisoformat(guildList["last_update"]) + timedelta(minutes=30) < datetime.now() or refresh
     ):
         accessToken = await getAccessToken(userId)
         if not accessToken:
@@ -234,53 +233,19 @@ async def getUserGuilds(userId):
         filteredAdminGuilds = filterAdminGuilds(guilds)
         filteredGuilds = await filterBotGuilds(filteredAdminGuilds)
 
-        new_guild_list = {
+        newGuildList = {
             "last_update": datetime.now().isoformat(),
             "guilds": [{"id": g["id"], "name": g["name"], "icon": g["icon"]} for g in filteredGuilds],
         }
 
         con, cur = await loadDB()
-        await cur.execute("UPDATE users SET guilds = ? WHERE id = ?", (json.dumps(new_guild_list, indent=2), userId),)
+        await cur.execute("UPDATE users SET guilds = ? WHERE id = ?", (json.dumps(newGuildList, indent=2), userId),)
         await con.commit()
         await closeDB(con, cur)
 
-        return {"success": True, "data": new_guild_list["guilds"]}
+        return newGuildList["guilds"]
 
-    return {"success": True, "data": guildList["guilds"]}
-
-
-async def refreshGuildList(userId: str):
-    con, cur = await loadDB()
-    await cur.execute("SELECT * FROM users WHERE id = ?", (userId,))
-    user = await cur.fetchone()
-    await closeDB(con, cur)
-
-    if not user:
-        print("User not found")
-        return
-
-    accessToken = await getAccessToken(userId)
-    if not accessToken:
-        return {"success": False, "error": {"code": 401, "message": "Refresh token expired"}}
-
-    guilds = await fetchUserGuilds(accessToken)
-    if not guilds:
-        return {"success": False, "error": {"code": 500, "message": "Failed to fetch guilds"}}
-
-    filteredAdminGuilds = filterAdminGuilds(guilds)
-    filteredGuilds = await filterBotGuilds(filteredAdminGuilds)
-
-    new_guild_list = {
-        "last_update": datetime.now().isoformat(),
-        "guilds": [{"id": g["id"], "name": g["name"], "icon": g["icon"]} for g in filteredGuilds],
-    }
-
-    con, cur = await loadDB()
-    await cur.execute("UPDATE users SET guilds = ? WHERE id = ?", (json.dumps(new_guild_list, indent=2), userId),)
-    await con.commit()
-    await closeDB(con, cur)
-
-    return {"success": True, "data": new_guild_list["guilds"]}
+    return guildList["guilds"]
 
 async def isGuildAdmin(guild_id, username) -> bool:
     try:

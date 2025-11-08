@@ -11,6 +11,6 @@ router = Blueprint("api", __name__, url_prefix="/")
 
 if not settings.api_only:
     router.register_blueprint(authApiRouter, url_prefix="/auth")
-router.register_blueprint(userApiRouter, url_prefix="/user")
-router.register_blueprint(ticketApiRouter, url_prefix="/ticket")
+router.register_blueprint(userApiRouter, url_prefix="/users")
+router.register_blueprint(ticketApiRouter, url_prefix="/tickets")
 router.register_blueprint(guildApiRouter, url_prefix="/guilds")
