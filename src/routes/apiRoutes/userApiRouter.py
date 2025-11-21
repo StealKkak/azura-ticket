@@ -14,7 +14,13 @@ async def getServerList():
     if not userId:
         return jsonify({"error": "Unauthorized"}), 401 if not settings.api_only else jsonify({"error": "Missing required parameters"}), 400
     
-    result = await getUserGuilds(userId, refresh)
+    try:
+        result = await getUserGuilds(userId, refresh)
+    except ValueError as e:
+        return jsonify(str(e)), 401
+    except:
+        return jsonify(str(e)), 500
+    
     if not result:
         return jsonify({"error": "No Data Found"}), 404
     

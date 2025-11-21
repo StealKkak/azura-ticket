@@ -212,11 +212,10 @@ async def filterBotGuilds(guilds):
 async def getUserGuilds(userId, refresh = False):
     con, cur = await loadDB()
     await cur.execute("SELECT * FROM users WHERE id = ?", (userId,))
-    user = await cur.fetchone()
+    row = await cur.fetchone()
     await closeDB(con, cur)
 
-    guildsListRaw = user["guilds"]
-    guildList = json.loads(guildsListRaw) if guildsListRaw else None
+    guildList = json.loads(row["guilds"]) if row and row["guilds"] else None
 
     if (
         not guildList
@@ -224,11 +223,11 @@ async def getUserGuilds(userId, refresh = False):
     ):
         accessToken = await getAccessToken(userId)
         if not accessToken:
-            return {"success": False, "error": {"code": 401, "message": "Refresh token expired"}}
+            raise ValueError("Refresh token expired")
 
         guilds = await fetchUserGuilds(accessToken)
         if not guilds:
-            return {"success": False, "error": {"code": 500, "message": "Failed to fetch guilds"}}
+            raise RuntimeError("Failed to fetch guilds")
 
         filteredAdminGuilds = filterAdminGuilds(guilds)
         filteredGuilds = await filterBotGuilds(filteredAdminGuilds)
