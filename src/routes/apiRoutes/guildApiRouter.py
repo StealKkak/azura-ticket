@@ -17,13 +17,12 @@ router = Blueprint("guildApiRouter", __name__, url_prefix="/")
 
 @router.route("/<guildId>/ticket-settings", methods=["GET", "PUT"])
 async def getTicketSettings(guildId):
-    if not settigns.api_only:
-        username = session.get("username")
-        if not username:
-            return jsonify({"error": "Unauthorized"}), 401
-        
-        if not await isGuildAdmin(guildId, username):
-            return jsonify({"error": "You don't have permission to perform this action"}), 403
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    if not await isGuildAdmin(guildId, username):
+        return jsonify({"error": "You don't have permission to perform this action"}), 403
         
     tickets = await TicketType.findByGuildId(guildId)
 
@@ -66,13 +65,12 @@ async def getTicketSettings(guildId):
 
 @router.route("/<guildId>/ticket-settings/<index>", methods=["GET", "POST", "DELETE"])
 async def handelTicketSetting(guildId, index):
-    if not settigns.api_only:
-        username = session.get("username")
-        if not username:
-            return jsonify({"error": "Unauthorized"}), 401
-        
-        if not await isGuildAdmin(guildId, username):
-            return jsonify({"error": "You don't have permission to perform this action"}), 403
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    if not await isGuildAdmin(guildId, username):
+        return jsonify({"error": "You don't have permission to perform this action"}), 403
         
     try:
         index = int(index)
@@ -143,22 +141,24 @@ async def handelTicketSetting(guildId, index):
     
 @router.route("/<guildId>/roles", methods=["GET"])
 async def getGuildRoles(guildId):
-    if not settigns.api_only:
-        username = session.get("username")
-        if not username:
-            return jsonify({"error": "Unauthorized"}), 401
-        
-        if not await isGuildAdmin(guildId, username):
-            return jsonify({"error": "You don't have permission to perform this action"}), 403
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Unauthorized"}), 401
     
+    if not await isGuildAdmin(guildId, username):
+        return jsonify({"error": "You don't have permission to perform this action"}), 403
+    
+    guild = bot.get_guild(guildId) or await bot.fetch_guild(guildId)
     try:
-        roles = await bot.http.get_roles(guildId)
+        roles = await guild.fetch_roles()
     except discord.Forbidden:
         return jsonify({"error": "봇이 권한이 없어 역할을 가져올 수 없습니다!"}), 500
     except discord.NotFound:
         return jsonify({"error": "봇이 해당 서버에 존재하지 않아 역할을 가져올 수 없습니다!"}), 404
     
-    return jsonify({"message": "success", "data": roles})
+    filtered = [{"name": role.name, "id": role.id} for role in roles if not role.managed]
+    
+    return jsonify({"message": "success", "data": filtered})
 
 @router.route("/<guildId>/channels", methods=["GET"])
 async def getGuildChannels(guildId):
@@ -170,11 +170,14 @@ async def getGuildChannels(guildId):
         if not await isGuildAdmin(guildId, username):
             return jsonify({"error": "You don't have permission to perform this action"}), 403
     
+    guild = bot.get_guild(guildId) or await bot.fetch_guild(guildId)
     try:
-        channels = await bot.http.get_all_guild_channels(guildId)
+        channels = await guild.fetch_channels()
     except discord.Forbidden:
         return jsonify({"error": "봇이 권한이 없어 채널을 가져올 수 없습니다!"}), 500
     except discord.NotFound:
         return jsonify({"error": "봇이 해당 서버에 존재하지 않아 채널을 가져올 수 없습니다!"}), 404
     
-    return jsonify({"message": "success", "data": channels})
+    data = [{"name": channel.name, "id": channel.id, "type": channel.type.value} for channel in channels]
+    
+    return jsonify({"message": "success", "data": data})
