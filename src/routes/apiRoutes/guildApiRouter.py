@@ -156,7 +156,7 @@ async def getGuildRoles(guildId):
     except discord.NotFound:
         return jsonify({"error": "봇이 해당 서버에 존재하지 않아 역할을 가져올 수 없습니다!"}), 404
     
-    filtered = [{"name": role.name, "id": role.id} for role in roles if not role.managed]
+    filtered = [{"name": role.name, "id": str(role.id)} for role in roles if not role.managed]
     
     return jsonify({"message": "success", "data": filtered})
 
@@ -178,6 +178,6 @@ async def getGuildChannels(guildId):
     except discord.NotFound:
         return jsonify({"error": "봇이 해당 서버에 존재하지 않아 채널을 가져올 수 없습니다!"}), 404
     
-    data = [{"name": channel.name, "id": channel.id, "type": channel.type.value} for channel in channels]
+    data = [{"name": channel.name, "id": str(channel.id), "type": channel.type.value} for channel in channels]
     
     return jsonify({"message": "success", "data": data})
