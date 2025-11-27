@@ -47,7 +47,7 @@ copy .env.example .env
 
 최초 실행 시 config.ini가 생성되며 프로그램이 종료됩니다. config.ini 설정 후 다시 실행해주세요.
 ```
-hypercorn src/index.py:app --bind 0.0.0.0:<PORT>
+python3 src/index.py
 ```
 ---
 
