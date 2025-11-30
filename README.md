@@ -55,7 +55,7 @@ python3 src/index.py
 - **서비스 운영 중:** AGPL 라이선스 적용  
   - 배포, 서비스 제공, 코드 수정 등 일체의 행위에 대해 **소스코드 공개 의무**가 발생합니다.
 
-이 프로젝트는 [https://github.com/mahtoid/DiscordChatExporterPy](DiscordChatExporterPy) 라이브러리를 수정한 소스를 사용하고 있습니다.
+이 프로젝트는 [DiscordChatExporterPy](https://github.com/mahtoid/DiscordChatExporterPy) 라이브러리를 수정한 소스를 사용하고 있습니다.
 - `chat_exporter` 모듈: 한글화 및 후원 문구 제거 목적 일부 수정
 - `static/css/style.css`: 수정 없음, 프로젝트에서 base HTML 스타일 오버라이드 목적
 
