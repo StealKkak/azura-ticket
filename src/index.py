@@ -37,7 +37,7 @@ async def notFound(e):
 async def serverError(e):
     if request.path.startswith("/api"):
         return jsonify({"error": "Internal server error"}), 500
-    return render_template("error/500.html"), 500
+    return await render_template("error/500.html"), 500
 
 @app.errorhandler(405)
 async def methodNotAllowed(e):
